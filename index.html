@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORDER TIME — ORDER TIME</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <img id="companyLogoImg" src="" alt="ORDER TIME" class="brand-logo">
+                    <div class="brand-text">
+                        <span class="brand-name" data-i18n="companyName">ORDER TIME</span>
+                        <span class="app-title">ORDER TIME</span>
+                    </div>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-target="dashboard-section">
+                    <i class="fa-solid fa-chart-pie"></i> <span data-i18n="navDashboard">لوحة القيادة</span>
+                </a>
+                <a href="#" class="nav-item" data-target="orders-section">
+                    <i class="fa-solid fa-box-open"></i> <span data-i18n="navOrders">الطلبات</span>
+                </a>
+                <a href="#" class="nav-item" data-target="new-order-section">
+                    <i class="fa-solid fa-cart-plus"></i> <span data-i18n="navNewOrder">طلب جديد</span>
+                </a>
+                <a href="#" class="nav-item" data-target="stores-section">
+                    <i class="fa-solid fa-store"></i> <span data-i18n="navStores">مواقع الشراء</span>
+                </a>
+                <a href="#" class="nav-item" data-target="settings-section">
+                    <i class="fa-solid fa-gears"></i> <span data-i18n="navSettings">الإعدادات</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="system-status">
+                    <span class="status-dot"></span> <span data-i18n="systemActive">النظام يعمل محلياً</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="globalSearchInput" data-i18n-placeholder="searchPlaceholder" placeholder="ابحث برقم الطلب، اسم الزبون، أو الهاتف...">
+                </div>
+                <div class="header-actions">
+                    <div class="lang-selector-wrapper">
+                        <select id="globalLangSelect" class="custom-select">
+                            <option value="ar">العربية</option>
+                            <option value="fr">Français</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                    <div class="user-profile">
+                        <span id="headerCompanyName">ORDER TIME</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dynamic Views Container -->
+            <div class="content-body">
+
+                <!-- 1. DASHBOARD SECTION -->
+                <section id="dashboard-section" class="app-section active">
+                    <div class="section-header">
+                        <h2 data-i18n="dashTitle">لوحة القيادة المالية والتشغيلية</h2>
+                        <p data-i18n="dashSubtitle">نظرة شاملة ومحدثة فورياً على حركة الطلبات والأرباح</p>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon emerald"><i class="fa-solid fa-boxes-stacked"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label" data-i18n="statOrdersCount">عدد الطلبات</span>
+                                <h3 id="statTotalOrders">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon mint"><i class="fa-solid fa-users"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label" data-i18n="statCustomersCount">عدد الزبائن</span>
+                                <h3 id="statTotalCustomers">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon teal"><i class="fa-solid fa-money-bill-wave"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label" data-i18n="statTotalOrdersVal">إجمالي قيمة الطلبات</span>
+                                <h3 id="statTotalOrdersValue">0 DZD</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon emerald"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label" data-i18n="statTotalCollected">إجمالي المحصل</span>
+                                <h3 id="statTotalCollectedValue">0 DZD</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon pink"><i class="fa-solid fa-wallet"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label" data-i18n="statTotalRemaining">المبالغ المتبقية</span>
+                                <h3 id="statTotalRemainingValue">0 DZD</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon teal"><i class="fa-solid fa-vault"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label" data-i18n="statCapital">رأس المال المستخدم</span>
+                                <h3 id="statCapitalValue">0 DZD</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon emerald"><i class="fa-solid fa-chart-line"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label" data-i18n="statGrossProfit">إجمالي الأرباح</span>
+                                <h3 id="statGrossProfitValue">0 DZD</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon mint"><i class="fa-solid fa-piggy-bank"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label" data-i18n="statNetProfit">صافي الأرباح</span>
+                                <h3 id="statNetProfitValue">0 DZD</h3>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. ORDERS SECTION -->
+                <section id="orders-section" class="app-section">
+                    <div class="section-header space-between">
+                        <div>
+                            <h2 data-i18n="ordersTitle">إدارة الطلبات</h2>
+                            <p data-i18n="ordersSubtitle">استعرض، عدل، تتبع واطبع الفواتير والتقارير الداخلية</p>
+                        </div>
+                        <button class="btn-primary" id="gotoNewOrderBtn"><i class="fa-solid fa-plus"></i> <span data-i18n="newOrderBtn">طلب جديد</span></button>
+                    </div>
+                    <div class="filters-bar">
+                        <select id="filterStatus" class="filter-input">
+                            <option value="" data-i18n="allStatuses">جميع الحالات</option>
+                            <option value="pending" data-i18n="statusPending">قيد الطلب</option>
+                            <option value="ordered" data-i18n="statusOrdered">تم الطلب</option>
+                            <option value="shipping" data-i18n="statusShipping">في الشحن</option>
+                            <option value="arrived" data-i18n="statusArrived">وصل</option>
+                            <option value="delivering" data-i18n="statusDelivering">في التسليم</option>
+                            <option value="cancelled" data-i18n="statusCancelled">ملغي</option>
+                        </select>
+                        <select id="filterStore" class="filter-input">
+                            <option value="" data-i18n="allStores">جميع المواقع</option>
+                        </select>
+                        <input type="date" id="filterDate" class="filter-input">
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="thOrderNo">رقم الطلب</th>
+                                    <th data-i18n="thDate">التاريخ</th>
+                                    <th data-i18n="thCustomer">الزبون</th>
+                                    <th data-i18n="thStores">المواقع</th>
+                                    <th data-i18n="thTotal">الإجمالي</th>
+                                    <th data-i18n="thPaid">المدفوع</th>
+                                    <th data-i18n="thRemaining">المتبقي</th>
+                                    <th data-i18n="thProfit">الربح</th>
+                                    <th data-i18n="thStatus">الحالة</th>
+                                    <th data-i18n="thActions">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody">
+                                <!-- Dynamic rows inserted via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 3. NEW / EDIT ORDER SECTION (Live Preview Split Screen) -->
+                <section id="new-order-section" class="app-section">
+                    <div class="section-header">
+                        <h2 id="orderFormTitle" data-i18n="newOrderTitle">إنشاء طلب جديد</h2>
+                        <p data-i18n="newOrderSubtitle">أدخل تفاصيل الطلب لتظهر المعاينة المباشرة فورياً</p>
+                    </div>
+
+                    <div class="split-builder-container">
+                        <!-- Left/Right Form Entry -->
+                        <div class="form-entry-pane">
+                            <form id="orderForm">
+                                <input type="hidden" id="editOrderId" value="">
+                                
+                                <div class="card-box">
+                                    <h3 class="box-title" data-i18n="boxOrderInfo">معلومات الطلب الأساسية</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label data-i18n="lblOrderNo">رقم الطلب</label>
+                                            <input type="text" id="orderNumberInput" readonly class="input-readonly">
+                                        </div>
+                                        <div class="form-group">
+                                            <label data-i18n="lblOrderDate">تاريخ الطلب</label>
+                                            <input type="date" id="orderDateInput" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label data-i18n="lblExpDate">تاريخ التسليم المتوقع</label>
+                                            <input type="date" id="orderExpDateInput">
+                                        </div>
+                                        <div class="form-group">
+                                            <label data-i18n="lblStatus">حالة الطلب</label>
+                                            <select id="orderStatusInput">
+                                                <option value="pending" data-i18n="statusPending">قيد الطلب</option>
+                                                <option value="ordered" data-i18n="statusOrdered">تم الطلب</option>
+                                                <option value="shipping" data-i18n="statusShipping">في الشحن</option>
+                                                <option value="arrived" data-i18n="statusArrived">وصل</option>
+                                                <option value="delivering" data-i18n="statusDelivering">في التسليم</option>
+                                                <option value="cancelled" data-i18n="statusCancelled">ملغي</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group mt-2">
+                                        <label data-i18n="lblNotes">ملاحظات اختيارية</label>
+                                        <textarea id="orderNotesInput" rows="2" data-i18n-placeholder="notesPlaceholder" placeholder="أدخل أي ملاحظات خاصة بالطلب..."></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="card-box">
+                                    <h3 class="box-title" data-i18n="boxCustomerInfo">معلومات الزبون</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label data-i18n="lblCustName">اسم الزبون *</label>
+                                            <input type="text" id="custNameInput" required data-i18n-placeholder="custNamePlaceholder" placeholder="اسم الزبون الكامل">
+                                        </div>
+                                        <div class="form-group">
+                                            <label data-i18n="lblCustPhone">رقم الهاتف *</label>
+                                            <input type="text" id="custPhoneInput" required data-i18n-placeholder="custPhonePlaceholder" placeholder="06xxxxxxxx">
+                                        </div>
+                                        <div class="form-group">
+                                            <label data-i18n="lblCustWhatsapp">رقم WhatsApp *</label>
+                                            <input type="text" id="custWhatsappInput" required data-i18n-placeholder="custWhatsappPlaceholder" placeholder="2136xxxxxxxx">
+                                        </div>
+                                        <div class="form-group">
+                                            <label data-i18n="lblCustAddress">العنوان (اختياري)</label>
+                                            <input type="text" id="custAddressInput" data-i18n-placeholder="custAddressPlaceholder" placeholder="المدينة، الحي...">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-box">
+                                    <div class="space-between mb-2">
+                                        <h3 class="box-title m-0" data-i18n="boxStoresInfo">مواقع الشراء والقطع (USD)</h3>
+                                        <button type="button" class="btn-sm btn-emerald" id="addStoreRowBtn"><i class="fa-solid fa-plus"></i> <span data-i18n="btnAddStore">إضافة موقع</span></button>
+                                    </div>
+                                    <div id="storesRowsContainer">
+                                        <!-- Dynamic store rows -->
+                                    </div>
+                                    <div class="total-purchase-calc mt-2">
+                                        <span data-i18n="totalPurchaseCostLbl">إجمالي تكلفة الشراء:</span>
+                                        <strong id="liveTotalPurchaseUSD">0.00 USD</strong>
+                                    </div>
+                                </div>
+
+                                <div class="card-box">
+                                    <h3 class="box-title" data-i18n="boxFinancials">الإدارة المالية وسعر الصرف</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label data-i18n="lblExchangeRate">سعر الصرف (1 USD = ? DZD) *</label>
+                                            <input type="number" id="exchangeRateInput" step="0.5" value="135" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label data-i18n="lblCustomerTotal">المبلغ المطلوب من الزبون (DZD) *</label>
+                                            <input type="number" id="customerTotalDZDInput" step="1" required data-i18n-placeholder="custTotalPlaceholder" placeholder="مثلاً: 45000">
+                                        </div>
+                                    </div>
+                                    <div class="financial-preview-box mt-2">
+                                        <div class="fin-row">
+                                            <span data-i18n="finCostDZD">التكلفة بالدينار:</span>
+                                            <span id="previewCostDZD">0 DZD</span>
+                                        </div>
+                                        <div class="fin-row">
+                                            <span data-i18n="finGrossProfit">الربح الإجمالي:</span>
+                                            <span id="previewGrossProfit" class="text-success">0 DZD</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-box">
+                                    <div class="space-between mb-2">
+                                        <h3 class="box-title m-0" data-i18n="boxPayments">الدفعات المحصلة (DZD)</h3>
+                                        <button type="button" class="btn-sm btn-emerald" id="addPaymentRowBtn"><i class="fa-solid fa-plus"></i> <span data-i18n="btnAddPayment">إضافة دفعة</span></button>
+                                    </div>
+                                    <div id="paymentsRowsContainer">
+                                        <!-- Dynamic payment rows -->
+                                    </div>
+                                    <div class="payments-summary-box mt-2">
+                                        <div><span data-i18n="sumPaid">إجمالي المدفوع:</span> <strong id="liveTotalPaidDZD">0 DZD</strong></div>
+                                        <div><span data-i18n="sumRemaining">المتبقي:</span> <strong id="liveRemainingDZD" class="text-danger">0 DZD</strong></div>
+                                    </div>
+                                </div>
+
+                                <div class="card-box">
+                                    <h3 class="box-title" data-i18n="boxInvoiceOptions">خيارات الفاتورة</h3>
+                                    <div class="form-grid">
+                                <div class="form-group">
+                                    <label data-i18n="lblInvoiceLang">لغة فاتورة الزبون</label>
+                                    <select id="invoiceLangSelect">
+                                    <option value="ar">العربية (Arabic)</option>
+                                    <option value="fr" selected>الفرنسية (Français)</option>
+                                    <option value="en">الإنجليزية (English)</option>
+                                  </select>
+                                </div>
+                                        <div class="form-group">
+                                            <label data-i18n="lblInvoiceCurr">عملة عرض الفاتورة</label>
+                                            <select id="invoiceCurrSelect">
+                                                <option value="DZD">الدينار الجزائري (DZD)</option>
+                                                <option value="USD">الدولار الأمريكي (USD)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-actions-bar">
+                                    <button type="submit" class="btn-primary btn-lg w-100" id="saveOrderBtn"><i class="fa-solid fa-floppy-disk"></i> <span data-i18n="saveOrderSubmit">حفظ الطلب ومعاينة الفاتورة</span></button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Right/Left Live Preview Pane -->
+                        <div class="live-preview-pane">
+                            <div class="preview-sticky-wrapper">
+                                <div class="preview-header-bar">
+                                    <span class="preview-badge"><i class="fa-solid fa-eye"></i> <span data-i18n="livePreviewTitle">معاينة فاتورة الزبون الحية</span></span>
+                                </div>
+                                <div id="customerInvoicePreview" class="invoice-paper">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                                <div class="preview-action-buttons mt-2">
+                                    <button type="button" id="previewPdfBtn" class="btn-dark"><i class="fa-solid fa-file-pdf"></i> <span data-i18n="btnPrintPdf">تحميل PDF</span></button>
+                                    <button type="button" id="previewWhatsappBtn" class="btn-whatsapp"><i class="fa-brands fa-whatsapp"></i> <span data-i18n="btnSendWhatsapp">إرسال WhatsApp</span></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. STORES SECTION -->
+                <section id="stores-section" class="app-section">
+                    <div class="section-header space-between">
+                        <div>
+                            <h2 data-i18n="storesTitle">إدارة مواقع الشراء</h2>
+                            <p data-i18n="storesSubtitle">إضافة وتعديل المواقع والشعارات الافتراضية</p>
+                        </div>
+                        <button class="btn-primary" id="openAddStoreModalBtn"><i class="fa-solid fa-plus"></i> <span data-i18n="addNewStoreBtn">موقع جديد</span></button>
+                    </div>
+                    <div class="stores-grid" id="storesGridContainer">
+                        <!-- Rendered stores cards -->
+                    </div>
+                </section>
+
+                <!-- 5. SETTINGS SECTION -->
+                <section id="settings-section" class="app-section">
+                    <div class="section-header">
+                        <h2 data-i18n="settingsTitle">إعدادات النظام والشركة</h2>
+                        <p data-i18n="settingsSubtitle">تخصيص بيانات شركة ORDER TIME وإدارة النسخ الاحتياطي</p>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="card-box">
+                            <h3 class="box-title" data-i18n="boxCompanyDetails">بيانات الشركة والفاتورة</h3>
+                            <form id="settingsForm">
+                                <div class="form-group mb-2">
+                                    <label data-i18n="lblCompanyName">اسم الشركة</label>
+                                    <input type="text" id="setCompanyName" value="ORDER TIME">
+                                </div>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label data-i18n="lblSetPhone">رقم الهاتف</label>
+                                        <input type="text" id="setCompanyPhone" value="">
+                                    </div>
+                                    <div class="form-group">
+                                        <label data-i18n="lblSetWhatsapp">رقم WhatsApp</label>
+                                        <input type="text" id="setCompanyWhatsapp" value="">
+                                    </div>
+                                    <div class="form-group">
+                                        <label data-i18n="lblSetEmail">البريد الإلكتروني</label>
+                                        <input type="email" id="setCompanyEmail" value="">
+                                    </div>
+                                    <div class="form-group">
+                                        <label data-i18n="lblSetAddress">عنوان الشركة</label>
+                                        <input type="text" id="setCompanyAddress" value="">
+                                    </div>
+                                </div>
+                                <div class="form-group mt-2">
+                                    <label data-i18n="lblSetFooter">رسالة تذييل الفاتورة</label>
+                                    <input type="text" id="setCompanyFooter" value="Merci pour votre confiance order_time">
+                                </div>
+                                <div class="form-group mt-2">
+                                    <label data-i18n="lblSetLogo">شعار الشركة (رفع صورة)</label>
+                                    <input type="file" id="setCompanyLogoFile" accept="image/*">
+                                </div>
+                                <div class="form-grid mt-2">
+                                    <div class="form-group">
+                                        <label data-i18n="lblDefaultLang">لغة البرنامج الافتراضية</label>
+                                        <select id="setDefaultLang">
+                                            <option value="ar">العربية</option>
+                                            <option value="fr">Français</option>
+                                            <option value="en">English</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label data-i18n="lblReportingCurr">عملة التقارير العامة</label>
+                                        <select id="setReportingCurr">
+                                            <option value="DZD">الدينار الجزائري (DZD)</option>
+                                            <option value="USD">الدولار الأمريكي (USD)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <button type="submit" class="btn-primary" data-i18n="saveSettingsBtn">حفظ الإعدادات</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="card-box">
+                            <h3 class="box-title" data-i18n="boxBackupHeader">النسخ الاحتياطي واستعادة البيانات</h3>
+                            <p class="text-muted mb-3" data-i18n="backupDesc">قم بتصدير جميع بيانات الطلبات والزبائن والإعدادات إلى ملف JSON للاحتفاظ بها، أو قم بالاستعادة فوراً.</p>
+                            <div class="backup-actions flex-gap">
+                                <button type="button" id="exportBackupBtn" class="btn-emerald"><i class="fa-solid fa-download"></i> <span data-i18n="btnExportBackup">تصدير النسخة الاحتياطية</span></button>
+                                <label for="importBackupFile" class="btn-dark cursor-pointer"><i class="fa-solid fa-upload"></i> <span data-i18n="btnImportBackup">استعادة نسخة احتياطية</span></label>
+                                <input type="file" id="importBackupFile" accept=".json" class="d-none">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals for Store Add/Edit & Internal Report -->
+    <div id="storeModal" class="modal-overlay d-none">
+        <div class="modal-card">
+            <h3 id="storeModalTitle" data-i18n="modalStoreTitle">إضافة موقع شراء جديد</h3>
+            <form id="storeForm">
+                <input type="hidden" id="storeModalId" value="">
+                <div class="form-group mt-2">
+                    <label data-i18n="modalStoreName">اسم الموقع</label>
+                    <input type="text" id="modalStoreNameInput" required>
+                </div>
+                <div class="form-group mt-2">
+                    <label data-i18n="modalStoreLogo">أيقونة / شعار الموقع (صورة أو رابط أيقونة)</label>
+                    <input type="file" id="modalStoreLogoFile" accept="image/*">
+                </div>
+                <div class="modal-actions mt-3">
+                    <button type="button" class="btn-secondary" id="closeStoreModalBtn" data-i18n="btnCancel">إلغاء</button>
+                    <button type="submit" class="btn-primary" data-i18n="btnSave">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Internal Report Modal -->
+    <div id="internalReportModal" class="modal-overlay d-none">
+        <div class="modal-card modal-lg">
+            <div class="space-between mb-2">
+                <h3 data-i18n="internalReportTitle">التقرير الداخلي للطلب (خاص بصاحب البرنامج)</h3>
+                <button type="button" class="btn-sm btn-secondary" id="closeInternalModalBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="internalReportContent" class="internal-report-body">
+                <!-- Rendered dynamically -->
+            </div>
+            <div class="mt-3 text-end">
+                <button type="button" id="printInternalPdfBtn" class="btn-dark"><i class="fa-solid fa-file-pdf"></i> <span data-i18n="printInternalPdf">طباعة التقرير الداخلي PDF</span></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
