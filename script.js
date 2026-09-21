@@ -1,1466 +1,1017 @@
+/* ==========================================
+   StageLight Pro - Core JavaScript Engine
+   ================ ========================== */
 
-// --- STATE MANAGEMENT & DEFAULT DATA ---
-const DEFAULT_STORES = [
-    { id: 'store_shein', name: 'SHEIN', logo: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=100' },
-    { id: 'store_temu', name: 'Temu', logo: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=100' },
-    { id: 'store_amazon', name: 'Amazon', logo: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100' },
-    { id: 'store_trendyol', name: 'Trendyol', logo: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=100' },
-    { id: 'store_aliexpress', name: 'AliExpress', logo: 'https://images.unsplash.com/photo-1556742049-0a67d553c253?w=100' },
-    { id: 'store_noon', name: 'Noon', logo: 'https://images.unsplash.com/photo-1572584919865-031e8436413a?w=100' }
-];
+// State Management & LocalStorage Keys
+const STORAGE_KEY_PROJECTS = 'stagelight_projects_v1';
+const STORAGE_KEY_WAREHOUSE = 'stagelight_warehouse_v1';
+const STORAGE_KEY_LANG = 'stagelight_lang_v1';
 
-let appData = {
-    settings: {
-        companyName: 'ORDER TIME',
-        phone: '+2135799891705',
-        whatsapp: '+2135799891705',
-        email: 'contact@ORDERTIME.com',
-        address: 'Algiers, Algeria',
-        footerMessage: 'Merci pour votre confiance order_time',
-        logo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-        defaultLang: 'ar',
-        reportingCurr: 'DZD'
-    },
-    stores: DEFAULT_STORES,
-    orders: []
+let state = {
+    language: localStorage.getItem(STORAGE_KEY_LANG) || 'ar',
+    warehouse: JSON.parse(localStorage.getItem(STORAGE_KEY_WAREHOUSE)) || [
+        { id: 'eq_1', name: 'Shark Beam 450', brand: 'Light Sky', model: '450W', type: 'Beam', qty: 21, notes: 'Main moving heads' },
+        { id: 'eq_2', name: 'Titan Tube', brand: 'Astera', model: 'Titan', type: 'LED Tube', qty: 16, notes: 'Wireless IP65' },
+        { id: 'eq_3', name: 'RGBWAUV PAR', brand: 'Generic', model: 'PAR', type: 'PAR', qty: 33, notes: 'Wash lighting' },
+        { id: 'eq_4', name: 'Blinder', brand: 'Showtec', model: '2-Lite', type: 'Blinder', qty: 8, notes: 'Audience light' },
+        { id: 'eq_5', name: 'DMX Cable 5pin', brand: 'ProCab', model: '10m', type: 'Cable', qty: 50, notes: 'Data links' }
+    ],
+    projects: JSON.parse(localStorage.getItem(STORAGE_KEY_PROJECTS)) || [
+        {
+            id: 'proj_1',
+            name: 'Riyadh Music Festival 2026',
+            client: 'General Entertainment Authority',
+            venue: 'Boulevard World Stage A',
+            eventDate: '2026-11-15',
+            eventTime: '20:00',
+            setupDate: '2026-11-13',
+            notes: 'Main outdoor concert production setup.',
+            currentVersionId: 'v_1_1',
+            versions: [
+                {
+                    id: 'v_1_1',
+                    name: 'Version 1 - Initial Draft',
+                    date: '2026-09-20',
+                    notes: 'Initial preliminary design layout',
+                    equipment: [
+                        { warehouseId: 'eq_1', requiredQty: 18, notes: 'Main Truss' },
+                        { warehouseId: 'eq_2', requiredQty: 12, notes: 'Stage framing' },
+                        { warehouseId: 'eq_3', requiredQty: 24, notes: 'Floor wash' }
+                    ]
+                }
+            ]
+        }
+    ],
+    activeTab: 'projects', // 'projects', 'warehouse', 'project-detail'
+    currentProjectId: null,
+    currentVersionId: null
 };
 
 // Translations Dictionary
-const TRANSLATIONS = {
+const i18n = {
     ar: {
-        companyName: 'ORDER TIME',
-        navDashboard: 'لوحة القيادة',
-        navOrders: 'الطلبات',
-        navNewOrder: 'طلب جديد',
-        navStores: 'مواقع الشراء',
-        navSettings: 'الإعدادات',
-        systemActive: 'النظام يعمل محلياً',
-        searchPlaceholder: 'ابحث برقم الطلب، اسم الزبون، أو الهاتف...',
-        dashTitle: 'لوحة القيادة المالية والتشغيلية',
-        dashSubtitle: 'نظرة شاملة ومحدثة فورياً على حركة الطلبات والأرباح',
-        statOrdersCount: 'عدد الطلبات',
-        statCustomersCount: 'عدد الزبائن',
-        statTotalOrdersVal: 'إجمالي قيمة الطلبات',
-        statTotalCollected: 'إجمالي المحصل',
-        statTotalRemaining: 'المبالغ المتبقية',
-        statCapital: 'رأس المال المستخدم',
-        statGrossProfit: 'إجمالي الأرباح',
-        statNetProfit: 'صافي الأرباح',
-        ordersTitle: 'إدارة الطلبات',
-        ordersSubtitle: 'استعرض، عدل، تتبع واطبع الفواتير والتقارير الداخلية',
-        newOrderBtn: 'طلب جديد',
-        allStatuses: 'جميع الحالات',
-        statusPending: 'قيد الطلب',
-        statusOrdered: 'تم الطلب',
-        statusShipping: 'في الشحن',
-        statusArrived: 'وصل',
-        statusDelivering: 'في التسليم',
-        statusCancelled: 'ملغي',
-        allStores: 'جميع المواقع',
-        thOrderNo: 'رقم الطلب',
-        thDate: 'التاريخ',
-        thCustomer: 'الزبون',
-        thStores: 'المواقع',
-        thTotal: 'الإجمالي',
-        thPaid: 'المدفوع',
-        thRemaining: 'المتبقي',
-        thProfit: 'الربح',
-        thStatus: 'الحالة',
+        appTitle: 'StageLight Pro',
+        appSubtitle: 'إدارة مشاريع ومعدات الإضاءة',
+        tabProjects: 'المشاريع',
+        tabWarehouse: 'مستودع المعدات',
+        projectsTitle: 'مشاريع الإضاءة',
+        projectsSubtitle: 'إدارة وتنظيم كافة الفعاليات والعروض الحية',
+        addProjectBtn: 'إضافة مشروع جديد',
+        warehouseTitle: 'مستودع المعدات الرئيسي',
+        warehouseSubtitle: 'إدارة الأجهزة والمعدات المتوفرة لديك فعلياً',
+        addEquipmentBtn: 'إضافة معدة للمستودع',
+        searchProjectsPlaceholder: 'البحث في المشاريع (الاسم، المكان)...',
+        searchWarehousePlaceholder: 'ابحث بالاسم، الموديل، الشركة أو النوع...',
+        allTypes: 'جميع الأنواع',
+        thEquipment: 'المعدة / الجهاز',
+        thBrand: 'الشركة',
+        thModel: 'الموديل',
+        thType: 'النوع',
+        thAvailable: 'متوفر',
+        thNotes: 'ملاحظات',
         thActions: 'الإجراءات',
-        newOrderTitle: 'إنشاء طلب جديد',
-        newOrderSubtitle: 'أدخل تفاصيل الطلب لتظهر المعاينة المباشرة فورياً',
-        boxOrderInfo: 'معلومات الطلب الأساسية',
-        lblOrderNo: 'رقم الطلب',
-        lblOrderDate: 'تاريخ الطلب',
-        lblExpDate: 'تاريخ التسليم المتوقع',
-        lblStatus: 'حالة الطلب',
-        lblNotes: 'ملاحظات اختيارية',
-        notesPlaceholder: 'أدخل أي ملاحظات خاصة بالطلب...',
-        boxCustomerInfo: 'معلومات الزبون',
-        lblCustName: 'اسم الزبون *',
-        custNamePlaceholder: 'اسم الزبون الكامل',
-        lblCustPhone: 'رقم الهاتف *',
-        custPhonePlaceholder: '06xxxxxxxx',
-        lblCustWhatsapp: 'رقم WhatsApp *',
-        custWhatsappPlaceholder: '2136xxxxxxxx',
-        lblCustAddress: 'العنوان (اختياري)',
-        custAddressPlaceholder: 'المدينة، الحي...',
-        boxStoresInfo: 'مواقع الشراء والقطع (USD)',
-        btnAddStore: 'إضافة موقع',
-        totalPurchaseCostLbl: 'إجمالي تكلفة الشراء:',
-        boxFinancials: 'الإدارة المالية وسعر الصرف',
-        lblExchangeRate: 'سعر الصرف (1 USD = ? DZD) *',
-        lblCustomerTotal: 'المبلغ المطلوب من الزبون (DZD) *',
-        custTotalPlaceholder: 'مثلاً: 45000',
-        finCostDZD: 'التكلفة بالدينار:',
-        finGrossProfit: 'الربح الإجمالي:',
-        boxPayments: 'الدفعات المحصلة (DZD)',
-        btnAddPayment: 'إضافة دفعة',
-        sumPaid: 'إجمالي المدفوع:',
-        sumRemaining: 'المتبقي:',
-        boxInvoiceOptions: 'خيارات الفاتورة',
-        lblInvoiceLang: 'لغة فاتورة الزبون',
-        lblInvoiceCurr: 'عملة عرض الفاتورة',
-        saveOrderSubmit: 'حفظ الطلب ومعاينة الفاتورة',
-        livePreviewTitle: 'معاينة فاتورة الزبون الحية',
-        btnPrintPdf: 'تحميل PDF',
-        btnSendWhatsapp: 'إرسال WhatsApp',
-        storesTitle: 'إدارة مواقع الشراء',
-        storesSubtitle: 'إضافة وتعديل المواقع والشعارات الافتراضية',
-        addNewStoreBtn: 'موقع جديد',
-        settingsTitle: 'إعدادات النظام والشركة',
-        settingsSubtitle: 'تخصيص بيانات شركة ORDER TIME وإدارة النسخ الاحتياطي',
-        boxCompanyDetails: 'بيانات الشركة والفاتورة',
-        lblCompanyName: 'اسم الشركة',
-        lblSetPhone: 'رقم الهاتف',
-        lblSetWhatsapp: 'رقم WhatsApp',
-        lblSetEmail: 'البريد الإلكتروني',
-        lblSetAddress: 'عنوان الشركة',
-        lblSetFooter: 'رسالة تذييل الفاتورة',
-        lblSetLogo: 'شعار الشركة (رفع صورة)',
-        lblDefaultLang: 'لغة البرنامج الافتراضية',
-        lblReportingCurr: 'عملة التقارير العامة',
-        saveSettingsBtn: 'حفظ الإعدادات',
-        boxBackupHeader: 'النسخ الاحتياطي واستعادة البيانات',
-        backupDesc: 'قم بتصدير جميع بيانات الطلبات والزبائن والإعدادات إلى ملف JSON للاحتفاظ بها، أو قم بالاستعادة فوراً.',
-        btnExportBackup: 'تصدير النسخة الاحتياطية',
-        btnImportBackup: 'استعادة نسخة احتياطية',
-        modalStoreTitle: 'إضافة موقع شراء جديد',
-        modalStoreName: 'اسم الموقع',
-        modalStoreLogo: 'أيقونة / شعار الموقع',
+        thRequired: 'المطلوب',
+        thWarehouseAvailable: 'المستودع',
+        thShortage: 'النقص',
+        thStatus: 'الحالة',
+        backToProjects: 'العودة للمشاريع',
+        editProject: 'تعديل المشروع',
+        printSheet: 'طباعة / PDF',
+        duplicateProject: 'نسخ المشروع',
+        lblVenue: 'المكان:',
+        lblEventDate: 'التاريخ:',
+        lblEventTime: 'الوقت:',
+        totalProjectEquip: 'إجمالي معدات المشروع',
+        newVersionBtn: '+ نسخة جديدة (Version)',
+        addEquipToProject: '+ إضافة معدات للنسخة',
+        editVersion: 'تعديل النسخة',
+        deleteVersion: 'حذف النسخة',
+        modalAddProject: 'إضافة مشروع جديد',
+        modalEditProject: 'تعديل المشروع',
+        modalAddEquip: 'إضافة معدة للمستودع',
+        modalEditEquip: 'تعديل المعدة',
+        modalAddProjEquip: 'إضافة معدة للمشروع من المستودع',
+        modalNewVersion: 'إنشاء نسخة جديدة (Version)',
+        modalEditVersion: 'تعديل معلومات النسخة',
+        lblProjectName: 'اسم المشروع *',
+        lblClientName: 'اسم العميل (اختياري)',
+        lblClient: 'العميل',
+        lblSetupDate: 'تاريخ التركيب',
+        lblNotes: 'ملاحظات',
+        lblEquipName: 'اسم الجهاز / المعدة *',
+        lblBrand: 'الشركة المصنعة (Brand)',
+        lblModel: 'الموديل',
+        lblType: 'النوع *',
+        lblQuantity: 'الكمية المتوفرة *',
+        lblSelectEquip: 'اختر المعدة *',
+        lblAvailableInWarehouse: 'الكمية المتوفرة في المستودع:',
+        lblRequiredQty: 'الكمية المطلوبة للمشروع *',
+        lblProjectEquipNotes: 'ملاحظات خاصة بالمشروع (اختياري)',
+        lblVersionName: 'اسم النسخة / الوصف *',
         btnCancel: 'إلغاء',
+        btnSaveProject: 'حفظ المشروع',
+        btnSaveEquip: 'حفظ المعدة',
         btnSave: 'حفظ',
-        internalReportTitle: 'التقرير الداخلي للطلب (خاص بصاحب البرنامج)',
-        printInternalPdf: 'طباعة التقرير الداخلي PDF',
-        invoiceTitleHeader: 'فاتورة طلب الزبون',
-        invOrderNo: 'رقم الطلب',
-        invOrderDate: 'تاريخ الطلب',
-        invExpDate: 'تاريخ التسليم المتوقع',
-        invStatus: 'الحالة',
-        invCustomerName: 'الزبون',
-        invPhone: 'الهاتف',
-        invWhatsapp: 'WhatsApp',
-        invAddress: 'العنوان',
-        tableStore: 'موقع الشراء',
-        tableItemsCount: 'عدد القطع',
-        tableTotal: 'الإجمالي',
-        invTotalAmount: 'إجمالي الطلب',
-        invTotalPaid: 'إجمالي المدفوع',
-        invRemaining: 'المبلغ المتبقي',
-        actionView: 'عرض',
-        actionEdit: 'تعديل',
-        actionPdf: 'PDF',
-        actionInternal: 'تقرير داخلي',
-        actionWhatsapp: 'WhatsApp',
-        actionDelete: 'حذف'
-    },
-    fr: {
-        companyName: 'ORDER TIME',
-        navDashboard: 'Tableau de bord',
-        navOrders: 'Commandes',
-        navNewOrder: 'Nouvelle commande',
-        navStores: 'Magasins',
-        navSettings: 'Paramètres',
-        systemActive: 'Système local actif',
-        searchPlaceholder: 'Rechercher par N° commande, client, téléphone...',
-        dashTitle: 'Tableau de bord financier',
-        dashSubtitle: 'Aperçu global et mis à jour en temps réel',
-        statOrdersCount: 'Total Commandes',
-        statCustomersCount: 'Total Clients',
-        statTotalOrdersVal: 'Valeur Totale',
-        statTotalCollected: 'Total Encaissé',
-        statTotalRemaining: 'Reste à Payer',
-        statCapital: 'Capital Utilisé',
-        statGrossProfit: 'Bénéfice Brut',
-        statNetProfit: 'Bénéfice Net',
-        ordersTitle: 'Gestion des Commandes',
-        ordersSubtitle: 'Consulter, modifier et imprimer factures',
-        newOrderBtn: 'Nouvelle commande',
-        allStatuses: 'Tous les statuts',
-        statusPending: 'En attente',
-        statusOrdered: 'Commandé',
-        statusShipping: 'En livraison',
-        statusArrived: 'Arrivé',
-        statusDelivering: 'En distribution',
-        statusCancelled: 'Annulé',
-        allStores: 'Tous les magasins',
-        thOrderNo: 'N° Commande',
-        thDate: 'Date',
-        thCustomer: 'Client',
-        thStores: 'Magasins',
-        thTotal: 'Total',
-        thPaid: 'Payé',
-        thRemaining: 'Reste',
-        thProfit: 'Bénéfice',
-        thStatus: 'Statut',
-        thActions: 'Actions',
-        newOrderTitle: 'Créer une commande',
-        newOrderSubtitle: 'Aperçu direct en temps réel',
-        boxOrderInfo: 'Informations de base',
-        lblOrderNo: 'N° Commande',
-        lblOrderDate: 'Date de commande',
-        lblExpDate: 'Livraison prévue',
-        lblStatus: 'Statut',
-        lblNotes: 'Notes (Optionnel)',
-        notesPlaceholder: 'Entrez vos notes...',
-        boxCustomerInfo: 'Informations Client',
-        lblCustName: 'Nom du client *',
-        custNamePlaceholder: 'Nom complet',
-        lblCustPhone: 'Téléphone *',
-        custPhonePlaceholder: '06xxxxxxxx',
-        lblCustWhatsapp: 'WhatsApp *',
-        custWhatsappPlaceholder: '2136xxxxxxxx',
-        lblCustAddress: 'Adresse (Optionnel)',
-        custAddressPlaceholder: 'Ville, Quartier...',
-        boxStoresInfo: 'Magasins & Articles (USD)',
-        btnAddStore: 'Ajouter magasin',
-        totalPurchaseCostLbl: 'Coût total d\'achat:',
-        boxFinancials: 'Gestion Financière & Taux de Change',
-        lblExchangeRate: 'Taux de change (1 USD = ? DZD) *',
-        lblCustomerTotal: 'Montant Client (DZD) *',
-        custTotalPlaceholder: 'Ex: 45000',
-        finCostDZD: 'Coût en DZD:',
-        finGrossProfit: 'Bénéfice Brut:',
-        boxPayments: 'Paiements Reçus (DZD)',
-        btnAddPayment: 'Ajouter paiement',
-        sumPaid: 'Total Payé:',
-        sumRemaining: 'Reste:',
-        boxInvoiceOptions: 'Options de Facture',
-        lblInvoiceLang: 'Langue de la facture',
-        lblInvoiceCurr: 'Devise de la facture',
-        saveOrderSubmit: 'Enregistrer & Aperçu',
-        livePreviewTitle: 'Aperçu en direct',
-        btnPrintPdf: 'Télécharger PDF',
-        btnSendWhatsapp: 'Envoyer WhatsApp',
-        storesTitle: 'Gestion des Magasins',
-        storesSubtitle: 'Ajouter et modifier les boutiques',
-        addNewStoreBtn: 'Nouveau magasin',
-        settingsTitle: 'Paramètres du Système',
-        settingsSubtitle: 'Configuration de ORDER TIME',
-        boxCompanyDetails: 'Détails de l\'entreprise',
-        lblCompanyName: 'Nom de l\'entreprise',
-        lblSetPhone: 'Téléphone',
-        lblSetWhatsapp: 'WhatsApp',
-        lblSetEmail: 'Email',
-        lblSetAddress: 'Adresse',
-        lblSetFooter: 'Message de pied de page',
-        lblSetLogo: 'Logo de l\'entreprise',
-        lblDefaultLang: 'Langue par défaut',
-        lblReportingCurr: 'Devise des rapports',
-        saveSettingsBtn: 'Enregistrer',
-        boxBackupHeader: 'Sauvegarde & Restauration',
-        backupDesc: 'Exporter ou importer vos données JSON.',
-        btnExportBackup: 'Exporter la sauvegarde',
-        btnImportBackup: 'Restaurer la sauvegarde',
-        modalStoreTitle: 'Ajouter un magasin',
-        modalStoreName: 'Nom du magasin',
-        modalStoreLogo: 'Logo / Icône',
-        btnCancel: 'Annuler',
-        btnSave: 'Enregistrer',
-        internalReportTitle: 'Rapport Interne (Interne seulement)',
-        printInternalPdf: 'Imprimer Rapport Interne PDF',
-        invoiceTitleHeader: 'FACTURE CLIENT',
-        invOrderNo: 'N° Commande',
-        invOrderDate: 'Date',
-        invExpDate: 'Livraison prévue',
-        invStatus: 'Statut',
-        invCustomerName: 'Client',
-        invPhone: 'Téléphone',
-        invWhatsapp: 'WhatsApp',
-        invAddress: 'Adresse',
-        tableStore: 'Magasin',
-        tableItemsCount: 'Articles',
-        tableTotal: 'Total',
-        invTotalAmount: 'Total Commande',
-        invTotalPaid: 'Total Payé',
-        invRemaining: 'Reste à Payer',
-        actionView: 'Voir',
-        actionEdit: 'Modifier',
-        actionPdf: 'PDF',
-        actionInternal: 'Rapport',
-        actionWhatsapp: 'WhatsApp',
-        actionDelete: 'Supprimer'
+        btnAdd: 'إضافة',
+        btnCreate: 'إنشاء',
+        statusFull: 'متوفر بالكامل',
+        statusPartial: 'متوفر جزئياً',
+        statusNone: 'غير متوفر',
+        confirmDeleteProject: 'هل أنت متأكد من حذف هذا المشروع؟',
+        confirmDeleteEquip: 'هل أنت متأكد من حذف هذه المعدة من المستودع؟',
+        confirmDeleteVersion: 'هل أنت متأكد من حذف هذه النسخة؟',
+        exportBackup: 'تصدير النسخة الاحتياطية',
+        importBackup: 'استعادة نسخة احتياطية'
     },
     en: {
-        companyName: 'ORDER TIME',
-        navDashboard: 'Dashboard',
-        navOrders: 'Orders',
-        navNewOrder: 'New Order',
-        navStores: 'Stores',
-        navSettings: 'Settings',
-        systemActive: 'Local system active',
-        searchPlaceholder: 'Search order, customer, phone...',
-        dashTitle: 'Financial Dashboard',
-        dashSubtitle: 'Comprehensive real-time overview of orders and profits',
-        statOrdersCount: 'Total Orders',
-        statCustomersCount: 'Total Customers',
-        statTotalOrdersVal: 'Total Order Value',
-        statTotalCollected: 'Total Collected',
-        statTotalRemaining: 'Remaining Balance',
-        statCapital: 'Capital Used',
-        statGrossProfit: 'Gross Profit',
-        statNetProfit: 'Net Profit',
-        ordersTitle: 'Orders Management',
-        ordersSubtitle: 'Review, edit, track and print invoices',
-        newOrderBtn: 'New Order',
-        allStatuses: 'All Statuses',
-        statusPending: 'Pending',
-        statusOrdered: 'Ordered',
-        statusShipping: 'In Shipping',
-        statusArrived: 'Arrived',
-        statusDelivering: 'Delivering',
-        statusCancelled: 'Cancelled',
-        allStores: 'All Stores',
-        thOrderNo: 'Order #',
-        thDate: 'Date',
-        thCustomer: 'Customer',
-        thStores: 'Stores',
-        thTotal: 'Total',
-        thPaid: 'Paid',
-        thRemaining: 'Remaining',
-        thProfit: 'Profit',
-        thStatus: 'Status',
+        appTitle: 'StageLight Pro',
+        appSubtitle: 'Event Lighting Management',
+        tabProjects: 'Projects',
+        tabWarehouse: 'Warehouse',
+        projectsTitle: 'Lighting Projects',
+        projectsSubtitle: 'Manage and organize all live shows and events',
+        addProjectBtn: 'Add New Project',
+        warehouseTitle: 'Master Equipment Warehouse',
+        warehouseSubtitle: 'Manage your owned gear and inventory',
+        addEquipmentBtn: 'Add Equipment',
+        searchProjectsPlaceholder: 'Search projects by name, venue...',
+        searchWarehousePlaceholder: 'Search by name, model, brand or type...',
+        allTypes: 'All Types',
+        thEquipment: 'Equipment',
+        thBrand: 'Brand',
+        thModel: 'Model',
+        thType: 'Type',
+        thAvailable: 'Available',
+        thNotes: 'Notes',
         thActions: 'Actions',
-        newOrderTitle: 'Create New Order',
-        newOrderSubtitle: 'Live preview updates instantly',
-        boxOrderInfo: 'Order Information',
-        lblOrderNo: 'Order Number',
-        lblOrderDate: 'Order Date',
-        lblExpDate: 'Expected Delivery',
-        lblStatus: 'Status',
-        lblNotes: 'Notes (Optional)',
-        notesPlaceholder: 'Enter any notes...',
-        boxCustomerInfo: 'Customer Information',
-        lblCustName: 'Customer Name *',
-        custNamePlaceholder: 'Full name',
-        lblCustPhone: 'Phone *',
-        custPhonePlaceholder: '06xxxxxxxx',
-        lblCustWhatsapp: 'WhatsApp *',
-        custWhatsappPlaceholder: '2136xxxxxxxx',
-        lblCustAddress: 'Address (Optional)',
-        custAddressPlaceholder: 'City, District...',
-        boxStoresInfo: 'Stores & Items (USD)',
-        btnAddStore: 'Add Store',
-        totalPurchaseCostLbl: 'Total Purchase Cost:',
-        boxFinancials: 'Financials & Exchange Rate',
-        lblExchangeRate: 'Exchange Rate (1 USD = ? DZD) *',
-        lblCustomerTotal: 'Customer Total (DZD) *',
-        custTotalPlaceholder: 'Ex: 45000',
-        finCostDZD: 'Cost in DZD:',
-        finGrossProfit: 'Gross Profit:',
-        boxPayments: 'Collected Payments (DZD)',
-        btnAddPayment: 'Add Payment',
-        sumPaid: 'Total Paid:',
-        sumRemaining: 'Remaining:',
-        boxInvoiceOptions: 'Invoice Options',
-        lblInvoiceLang: 'Invoice Language',
-        lblInvoiceCurr: 'Invoice Currency',
-        saveOrderSubmit: 'Save Order & Preview',
-        livePreviewTitle: 'Live Customer Invoice Preview',
-        btnPrintPdf: 'Download PDF',
-        btnSendWhatsapp: 'Send WhatsApp',
-        storesTitle: 'Stores Management',
-        storesSubtitle: 'Add and edit online stores',
-        addNewStoreBtn: 'New Store',
-        settingsTitle: 'System Settings',
-        settingsSubtitle: 'Configure ORDER TIME settings',
-        boxCompanyDetails: 'Company Details',
-        lblCompanyName: 'Company Name',
-        lblSetPhone: 'Phone',
-        lblSetWhatsapp: 'WhatsApp',
-        lblSetEmail: 'Email',
-        lblSetAddress: 'Address',
-        lblSetFooter: 'Invoice Footer Message',
-        lblSetLogo: 'Company Logo',
-        lblDefaultLang: 'Default Language',
-        lblReportingCurr: 'Reporting Currency',
-        saveSettingsBtn: 'Save Settings',
-        boxBackupHeader: 'Backup & Restore',
-        backupDesc: 'Export or import your data JSON file.',
-        btnExportBackup: 'Export Backup',
-        btnImportBackup: 'Restore Backup',
-        modalStoreTitle: 'Add New Store',
-        modalStoreName: 'Store Name',
-        modalStoreLogo: 'Store Logo / Icon',
+        thRequired: 'Required',
+        thWarehouseAvailable: 'Warehouse',
+        thShortage: 'Shortage',
+        thStatus: 'Status',
+        backToProjects: 'Back to Projects',
+        editProject: 'Edit Project',
+        printSheet: 'Print / PDF',
+        duplicateProject: 'Duplicate',
+        lblVenue: 'Venue:',
+        lblEventDate: 'Date:',
+        lblEventTime: 'Time:',
+        totalProjectEquip: 'Total Project Equipment',
+        newVersionBtn: '+ New Version',
+        addEquipToProject: '+ Add Equipment to Version',
+        editVersion: 'Edit Version',
+        deleteVersion: 'Delete Version',
+        modalAddProject: 'Add New Project',
+        modalEditProject: 'Edit Project',
+        modalAddEquip: 'Add Equipment to Warehouse',
+        modalEditEquip: 'Edit Equipment',
+        modalAddProjEquip: 'Add Equipment from Warehouse',
+        modalNewVersion: 'Create New Version',
+        modalEditVersion: 'Edit Version Info',
+        lblProjectName: 'Project Name *',
+        lblClientName: 'Client Name (Optional)',
+        lblClient: 'Client',
+        lblSetupDate: 'Setup Date',
+        lblNotes: 'Notes',
+        lblEquipName: 'Equipment Name *',
+        lblBrand: 'Brand',
+        lblModel: 'Model',
+        lblType: 'Type *',
+        lblQuantity: 'Available Quantity *',
+        lblSelectEquip: 'Select Equipment *',
+        lblAvailableInWarehouse: 'Available in Warehouse:',
+        lblRequiredQty: 'Required Quantity *',
+        lblProjectEquipNotes: 'Project-specific Notes (Optional)',
+        lblVersionName: 'Version Name / Description *',
         btnCancel: 'Cancel',
+        btnSaveProject: 'Save Project',
+        btnSaveEquip: 'Save Equipment',
         btnSave: 'Save',
-        internalReportTitle: 'Internal Report (Admin Only)',
-        printInternalPdf: 'Print Internal Report PDF',
-        invoiceTitleHeader: 'CUSTOMER ORDER INVOICE',
-        invOrderNo: 'Order #',
-        invOrderDate: 'Date',
-        invExpDate: 'Expected Delivery',
-        invStatus: 'Status',
-        invCustomerName: 'Customer',
-        invPhone: 'Phone',
-        invWhatsapp: 'WhatsApp',
-        invAddress: 'Address',
-        tableStore: 'Store',
-        tableItemsCount: 'Items',
-        tableTotal: 'Total',
-        invTotalAmount: 'Order Total',
-        invTotalPaid: 'Total Paid',
-        invRemaining: 'Remaining Balance',
-        actionView: 'View',
-        actionEdit: 'Edit',
-        actionPdf: 'PDF',
-        actionInternal: 'Internal',
-        actionWhatsapp: 'WhatsApp',
-        actionDelete: 'Delete'
+        btnAdd: 'Add',
+        btnCreate: 'Create',
+        statusFull: 'Fully Available',
+        statusPartial: 'Partially Available',
+        statusNone: 'Not Available',
+        confirmDeleteProject: 'Are you sure you want to delete this project?',
+        confirmDeleteEquip: 'Are you sure you want to delete this equipment?',
+        confirmDeleteVersion: 'Are you sure you want to delete this version?',
+        exportBackup: 'Export Backup',
+        importBackup: 'Import Backup'
     }
 };
 
-// --- INITIALIZATION & LOCALSTORAGE ---
-function initApp() {
-    loadFromLocalStorage();
-    applyLanguage(appData.settings.defaultLang);
-    document.getElementById('globalLangSelect').value = appData.settings.defaultLang;
-    renderCompanyBranding();
+// Initialize Application
+document.addEventListener('DOMContentLoaded', () => {
+    applyLanguage();
+    renderProjects();
+    renderWarehouse();
+    populateWarehouseTypeFilter();
+});
 
-    // Set default dates for new order
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('orderDateInput').value = today;
-    generateNewOrderNumber();
-
-    // Setup initial store and payment row in form if empty
-    addStoreRow();
-    addPaymentRow();
-
-    setupEventListeners();
-    refreshAllViews();
+// Save State to LocalStorage
+function persistData() {
+    localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(state.projects));
+    localStorage.setItem(STORAGE_KEY_WAREHOUSE, JSON.stringify(state.warehouse));
+    localStorage.setItem(STORAGE_KEY_LANG, state.language);
 }
 
-function loadFromLocalStorage() {
-    const saved = localStorage.getItem('order_time_nour_express_data');
-    if (saved) {
-        try {
-            appData = JSON.parse(saved);
-        } catch (e) { console.error('Error loading storage', e); }
-    }
+// Language Toggle & Application
+function toggleLanguage() {
+    state.language = state.language === 'ar' ? 'en' : 'ar';
+    persistData();
+    applyLanguage();
 }
 
-function saveToLocalStorage() {
-    localStorage.setItem('order_time_nour_express_data', JSON.stringify(appData));
-}
+function applyLanguage() {
+    const root = document.getElementById('htmlRoot');
+    root.setAttribute('lang', state.language);
+    root.setAttribute('dir', state.language === 'ar' ? 'rtl' : 'ltr');
+    document.getElementById('langBtnText').innerText = state.language === 'ar' ? 'EN' : 'عربي';
 
-function generateNewOrderNumber() {
-    const nextNum = appData.orders.length > 0 ? Math.max(...appData.orders.map(o => parseInt(o.id.replace('#', '')) || 1000)) + 1 : 1001;
-    document.getElementById('orderNumberInput').value = '#' + nextNum;
-}
-
-// --- LANGUAGE & UI RENDERING ---
-function applyLanguage(lang) {
-    document.documentElement.setAttribute('data-lang', lang);
-    document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
-
+    // Update all elements with data-i18n
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
-        if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) {
-            el.textContent = TRANSLATIONS[lang][key];
+        if (i18n[state.language][key]) {
+            el.innerText = i18n[state.language][key];
         }
     });
 
+    // Update placeholders
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
         const key = el.getAttribute('data-i18n-placeholder');
-        if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) {
-            el.placeholder = TRANSLATIONS[lang][key];
+        if (i18n[state.language][key]) {
+            el.placeholder = i18n[state.language][key];
         }
     });
+
+    if (state.activeTab === 'projects') renderProjects();
+    if (state.activeTab === 'warehouse') renderWarehouse();
+    if (state.activeTab === 'project-detail') renderProjectDetailView();
 }
 
-function renderCompanyBranding() {
-    const logoImg = document.getElementById('companyLogoImg');
-    if (logoImg) logoImg.src = appData.settings.logo;
-    const headerName = document.getElementById('headerCompanyName');
-    if (headerName) headerName.textContent = appData.settings.companyName;
+// Navigation Tabs Switcher
+function switchTab(tabName) {
+    state.activeTab = tabName;
+    document.getElementById('tab-content-projects').classList.add('hidden');
+    document.getElementById('tab-content-warehouse').classList.add('hidden');
+    document.getElementById('tab-content-project-detail').classList.add('hidden');
 
-    // Populate settings form values
-    document.getElementById('setCompanyName').value = appData.settings.companyName;
-    document.getElementById('setCompanyPhone').value = appData.settings.phone || '';
-    document.getElementById('setCompanyWhatsapp').value = appData.settings.whatsapp || '';
-    document.getElementById('setCompanyEmail').value = appData.settings.email || '';
-    document.getElementById('setCompanyAddress').value = appData.settings.address || '';
-    document.getElementById('setCompanyFooter').value = appData.settings.footerMessage || '';
-    document.getElementById('setDefaultLang').value = appData.settings.defaultLang;
-    document.getElementById('setReportingCurr').value = appData.settings.reportingCurr;
-}
+    // Desktop nav active styling
+    document.getElementById('nav-projects').className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800";
+    document.getElementById('nav-warehouse').className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800";
 
-// --- NAVIGATION & VIEWS ---
-function setupEventListeners() {
-    // Navigation
-    document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.querySelectorAll('.sidebar-nav .nav-item').forEach(i => i.classList.remove('active'));
-            document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'));
+    // Mobile nav active styling
+    document.getElementById('mobile-nav-projects').className = "flex-1 py-2 text-center text-xs font-semibold text-slate-400 border-b-2 border-transparent";
+    document.getElementById('mobile-nav-warehouse').className = "flex-1 py-2 text-center text-xs font-semibold text-slate-400 border-b-2 border-transparent";
 
-            item.classList.add('active');
-            const target = item.getAttribute('data-target');
-            document.getElementById(target).classList.add('active');
-
-            if (target === 'new-order-section' && !document.getElementById('editOrderId').value) {
-                resetOrderForm();
-            }
-            refreshAllViews();
-        });
-    });
-
-    document.getElementById('gotoNewOrderBtn').addEventListener('click', () => {
-        document.querySelector('[data-target="new-order-section"]').click();
-    });
-
-    // Global Language Selector
-    document.getElementById('globalLangSelect').addEventListener('change', (e) => {
-        const lang = e.target.value;
-        appData.settings.defaultLang = lang;
-        applyLanguage(lang);
-        saveToLocalStorage();
-    });
-
-    // Add Store Row in New Order
-    document.getElementById('addStoreRowBtn').addEventListener('click', () => addStoreRow());
-    // Add Payment Row in New Order
-    document.getElementById('addPaymentRowBtn').addEventListener('click', () => addPaymentRow());
-
-    // Live calculation triggers in form
-    document.getElementById('orderForm').addEventListener('input', updateLivePreviewAndCalcs);
-    document.getElementById('orderForm').addEventListener('change', updateLivePreviewAndCalcs);
-
-    // Save Order Submit
-    document.getElementById('orderForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        saveCurrentOrder();
-    });
-
-    // Filters
-    document.getElementById('filterStatus').addEventListener('change', renderOrdersTable);
-    document.getElementById('filterStore').addEventListener('change', renderOrdersTable);
-    document.getElementById('filterDate').addEventListener('change', renderOrdersTable);
-    document.getElementById('globalSearchInput').addEventListener('input', renderOrdersTable);
-
-    // Stores management modal
-    document.getElementById('openAddStoreModalBtn').addEventListener('click', () => openStoreModal());
-    document.getElementById('closeStoreModalBtn').addEventListener('click', () => closeStoreModal());
-    document.getElementById('storeForm').addEventListener('submit', handleStoreSubmit);
-
-    // Settings form
-    document.getElementById('settingsForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        saveSettings();
-    });
-
-    // Backup & Restore
-    document.getElementById('exportBackupBtn').addEventListener('click', exportBackup);
-    document.getElementById('importBackupFile').addEventListener('change', importBackup);
-
-    // PDF & WhatsApp Preview Buttons
-    document.getElementById('previewPdfBtn').addEventListener('click', downloadCustomerPDF);
-    document.getElementById('previewWhatsappBtn').addEventListener('click', sendCustomerWhatsApp);
-
-    // Internal Modal Close
-    document.getElementById('closeInternalModalBtn').addEventListener('click', () => {
-        document.getElementById('internalReportModal').classList.add('d-none');
-    });
-    document.getElementById('printInternalPdfBtn').addEventListener('click', printInternalPDF);
-}
-
-function addStoreRow(storeId = '', pieces = 1, totalUSD = 0) {
-    const container = document.getElementById('storesRowsContainer');
-    const rowId = 'store_row_' + Math.random().toString(36).substring(2, 7);
-
-    let storeOptions = appData.stores.map(s => `<option value="${s.name}" ${s.name === storeId ? 'selected' : ''}>${s.name}</option>`).join('');
-
-    const div = document.createElement('div');
-    div.className = 'form-grid mt-2 store-row-item';
-    div.id = rowId;
-    div.innerHTML = `
-        <div class="form-group">
-            <select class="store-select" required>${storeOptions}</select>
-        </div>
-        <div class="form-group">
-            <input type="number" class="store-pieces" min="1" value="${pieces}" placeholder="عدد القطع" required>
-        </div>
-        <div class="form-group">
-            <input type="number" class="store-usd" min="0" step="0.01" value="${totalUSD}" placeholder="الإجمالي USD" required>
-        </div>
-        <div class="form-group" style="justify-content: flex-end;">
-            <button type="button" class="btn-sm btn-secondary" onclick="document.getElementById('${rowId}').remove(); updateLivePreviewAndCalcs();"><i class="fa-solid fa-trash"></i></button>
-        </div>
-    `;
-    container.appendChild(div);
-    updateLivePreviewAndCalcs();
-}
-
-function addPaymentRow(date = new Date().toISOString().split('T')[0], amount = 0) {
-    const container = document.getElementById('paymentsRowsContainer');
-    const rowId = 'payment_row_' + Math.random().toString(36).substring(2, 7);
-
-    const div = document.createElement('div');
-    div.className = 'form-grid mt-2 payment-row-item';
-    div.id = rowId;
-    div.innerHTML = `
-        <div class="form-group">
-            <input type="date" class="payment-date" value="${date}" required>
-        </div>
-        <div class="form-group">
-            <input type="number" class="payment-amount" min="0" step="1" value="${amount}" placeholder="القيمة DZD" required>
-        </div>
-        <div class="form-group" style="justify-content: flex-end;">
-            <button type="button" class="btn-sm btn-secondary" onclick="document.getElementById('${rowId}').remove(); updateLivePreviewAndCalcs();"><i class="fa-solid fa-trash"></i></button>
-        </div>
-    `;
-    container.appendChild(div);
-    updateLivePreviewAndCalcs();
-}
-
-// --- LIVE CALCULATIONS & PREVIEW ---
-function updateLivePreviewAndCalcs() {
-    const exchangeRate = parseFloat(document.getElementById('exchangeRateInput').value) || 135;
-    const customerTotalDZD = parseFloat(document.getElementById('customerTotalDZDInput').value) || 0;
-
-    // Calculate total purchase USD from store rows
-    let totalPurchaseUSD = 0;
-    const storeRows = document.querySelectorAll('.store-row-item');
-    storeRows.forEach(row => {
-        const usd = parseFloat(row.querySelector('.store-usd').value) || 0;
-        totalPurchaseUSD += usd;
-    });
-
-    document.getElementById('liveTotalPurchaseUSD').textContent = totalPurchaseUSD.toFixed(2) + ' USD';
-
-    // Calculate Purchase Cost in DZD
-    const costDZD = totalPurchaseUSD * exchangeRate;
-    document.getElementById('previewCostDZD').textContent = costDZD.toLocaleString() + ' DZD';
-
-    // Gross Profit
-    const grossProfit = customerTotalDZD - costDZD;
-    const profitEl = document.getElementById('previewGrossProfit');
-    profitEl.textContent = grossProfit.toLocaleString() + ' DZD';
-    profitEl.className = grossProfit >= 0 ? 'text-success' : 'text-danger';
-
-    // Calculate Total Paid DZD
-    let totalPaidDZD = 0;
-    const paymentRows = document.querySelectorAll('.payment-row-item');
-    paymentRows.forEach(row => {
-        const amt = parseFloat(row.querySelector('.payment-amount').value) || 0;
-        totalPaidDZD += amt;
-    });
-
-    document.getElementById('liveTotalPaidDZD').textContent = totalPaidDZD.toLocaleString() + ' DZD';
-
-    const remainingDZD = customerTotalDZD - totalPaidDZD;
-    const remEl = document.getElementById('liveRemainingDZD');
-    remEl.textContent = remainingDZD.toLocaleString() + ' DZD';
-    remEl.className = remainingDZD > 0 ? 'text-danger' : 'text-success';
-
-    // Render Live Customer Invoice Preview
-    renderInvoicePreviewHTML();
-}
-
-function gatherCurrentOrderFormData() {
-    const stores = [];
-    document.querySelectorAll('.store-row-item').forEach(row => {
-        stores.push({
-            store: row.querySelector('.store-select').value,
-            pieces: parseInt(row.querySelector('.store-pieces').value) || 1,
-            totalUSD: parseFloat(row.querySelector('.store-usd').value) || 0
-        });
-    });
-
-    let totalPurchaseUSD = stores.reduce((sum, s) => sum + s.totalUSD, 0);
-    const exchangeRate = parseFloat(document.getElementById('exchangeRateInput').value) || 135;
-    const customerTotalDZD = parseFloat(document.getElementById('customerTotalDZDInput').value) || 0;
-    const costDZD = totalPurchaseUSD * exchangeRate;
-    const grossProfit = customerTotalDZD - costDZD;
-
-    const payments = [];
-    document.querySelectorAll('.payment-row-item').forEach(row => {
-        payments.push({
-            date: row.querySelector('.payment-date').value,
-            amount: parseFloat(row.querySelector('.payment-amount').value) || 0
-        });
-    });
-
-    const totalPaidDZD = payments.reduce((sum, p) => sum + p.amount, 0);
-    const remainingDZD = customerTotalDZD - totalPaidDZD;
-
-    return {
-        id: document.getElementById('orderNumberInput').value,
-        date: document.getElementById('orderDateInput').value,
-        expDate: document.getElementById('orderExpDateInput').value,
-        status: document.getElementById('orderStatusInput').value,
-        notes: document.getElementById('orderNotesInput').value,
-        customer: {
-            name: document.getElementById('custNameInput').value,
-            phone: document.getElementById('custPhoneInput').value,
-            whatsapp: document.getElementById('custWhatsappInput').value,
-            address: document.getElementById('custAddressInput').value
-        },
-        stores: stores,
-        purchaseUSD: totalPurchaseUSD,
-        exchangeRate: exchangeRate,
-        costDZD: costDZD,
-        customerTotalDZD: customerTotalDZD,
-        grossProfit: grossProfit,
-        netProfit: grossProfit, // Net = Gross in standard flow
-        payments: payments,
-        totalPaidDZD: totalPaidDZD,
-        remainingDZD: remainingDZD,
-        invoiceLang: document.getElementById('invoiceLangSelect').value,
-        invoiceCurr: document.getElementById('invoiceCurrSelect').value
-    };
-}
-
-function getStatusBadgeStyle(statusText) {
-    if (!statusText) return 'background: #f1f5f9; color: #475569;';
-    const s = statusText.toLowerCase();
-    let bg = '#f1f5f9';
-    let color = '#475569';
-
-    if (s.includes('مكتمل') || s.includes('completed') || s.includes('livré') || s.includes('تم')) {
-        bg = '#d1fae5';
-        color = '#065f46';
-    } else if (s.includes('انتظار') || s.includes('pending') || s.includes('en attente') || s.includes('مراجعة')) {
-        bg = '#fef3c7';
-        color = '#92400e';
-    } else if (s.includes('ملغي') || s.includes('cancelled') || s.includes('annulé') || s.includes('مرفوض')) {
-        bg = '#fee2e2';
-        color = '#991b1b';
-    } else if (s.includes('معالجة') || s.includes('processing') || s.includes('شحن') || s.includes('en cours')) {
-        bg = '#e0f2fe';
-        color = '#0369a1';
+    if (tabName === 'projects') {
+        document.getElementById('tab-content-projects').classList.remove('hidden');
+        document.getElementById('nav-projects').className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-brand-600 text-white shadow";
+        document.getElementById('mobile-nav-projects').className = "flex-1 py-2 text-center text-xs font-semibold text-brand-400 border-b-2 border-brand-500";
+        renderProjects();
+    } else if (tabName === 'warehouse') {
+        document.getElementById('tab-content-warehouse').classList.remove('hidden');
+        document.getElementById('nav-warehouse').className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-brand-600 text-white shadow";
+        document.getElementById('mobile-nav-warehouse').className = "flex-1 py-2 text-center text-xs font-semibold text-brand-400 border-b-2 border-brand-500";
+        renderWarehouse();
+    } else if (tabName === 'project-detail') {
+        document.getElementById('tab-content-project-detail').classList.remove('hidden');
+        renderProjectDetailView();
     }
-    return `background: ${bg}; color: ${color}; padding: 3px 8px; border-radius: 4px; font-weight: 600; display: inline-block;`;
 }
 
-window.getStatusBadgeStyle = function(statusText) {
-    if (!statusText) return 'background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 4px; font-weight: 600; display: inline-block;';
-    
-    const s = String(statusText).trim().toLowerCase();
-    let bg = '#f1f5f9';
-    let color = '#475569';
-
-    // 1. ملغي أو مرفوض (أحمر)
-    if (s.includes('ملغ') || s.includes('cancel') || s.includes('رفض') || s.includes('إلغاء')) {
-        bg = '#fee2e2';
-        color = '#991b1b';
-    } 
-    // 2. وصل أو مكتمل أو arrived (أخضر داكن)
-    else if (s.includes('وصل') || s.includes('arriv') || s.includes('مكتمل') || s.includes('deliver') || s.includes('complet') || s.includes('done')) {
-        bg = '#d1fae5';
-        color = '#065f46';
-    } 
-    // 3. في التسليم (تيل / أخضر فاتح)
-    else if (s.includes('تسليم') || s.includes('out_for_delivery')) {
-        bg = '#ccfbf1';
-        color = '#115e59';
-    } 
-    // 4. في الشحن (أزرق)
-    else if (s.includes('شحن') || s.includes('ship')) {
-        bg = '#e0f2fe';
-        color = '#0369a1';
-    } 
-    // 5. قيد الطلب أو معالجة (أصفر / برتقالي)
-    else if (s.includes('قيد') || s.includes('pending') || s.includes('process')) {
-        bg = '#fef3c7';
-        color = '#92400e';
-    } 
-    // 6. تم الطلب أو ordered (رمادي مميز)
-    else if (s.includes('تم الطلب') || s.includes('order') || s.includes('new')) {
-        bg = '#c7f0ec';
-        color = '#334155';
+// Modal Controllers
+function openModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+    if (modalId === 'projectModal') {
+        document.getElementById('projectForm').reset();
+        document.getElementById('projectId').value = '';
+        document.getElementById('projectModalTitle').innerText = i18n[state.language].modalAddProject;
     }
+    if (modalId === 'equipmentModal') {
+        document.getElementById('equipmentForm').reset();
+        document.getElementById('equipId').value = '';
+        document.getElementById('equipmentModalTitle').innerText = i18n[state.language].modalAddEquip;
+    }
+    if (modalId === 'addProjectEquipModal') {
+        document.getElementById('addProjectEquipForm').reset();
+        populateWarehouseSelectForProject();
+    }
+}
 
-    return `background: ${bg} !important; color: ${color} !important; padding: 3px 8px; border-radius: 4px; font-weight: 600; display: inline-block;`;
-};
-function renderInvoicePreviewHTML(customOrderData = null) {
-    const data = customOrderData || gatherCurrentOrderFormData();
-    const lang = data.invoiceLang || 'ar';
-    const curr = data.invoiceCurr || 'DZD';
-    const rate = data.exchangeRate || 135;
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
 
-    // Format amounts based on currency
-    const formatCurr = (valDZD) => {
-        if (curr === 'USD') {
-            return (valDZD / rate).toFixed(2) + ' USD';
-        }
-        return valDZD.toLocaleString() + ' DZD';
-    };
+/* ==========================================
+   1. WAREHOUSE MANAGEMENT
+   ========================================== */
+function renderWarehouse() {
+    const query = document.getElementById('warehouseSearchInput').value.toLowerCase();
+    const typeFilter = document.getElementById('warehouseTypeFilter').value;
+    const tbody = document.getElementById('warehouseTableBody');
+    tbody.innerHTML = '';
 
-    let storesHTML = '';
-    const totalStores = data.stores.length;
-    let distributedSum = 0;
-
-    data.stores.forEach((s, index) => {
-        let storeCustomerDZD = 0;
-        if (data.customerTotalDZD > 0) {
-            if (totalStores === 1) {
-                storeCustomerDZD = data.customerTotalDZD;
-            } else if (index === totalStores - 1) {
-                storeCustomerDZD = data.customerTotalDZD - distributedSum;
-            } else if (data.purchaseUSD > 0) {
-                storeCustomerDZD = Math.round((s.totalUSD / data.purchaseUSD) * data.customerTotalDZD);
-                distributedSum += storeCustomerDZD;
-            } else {
-                storeCustomerDZD = Math.round(data.customerTotalDZD / totalStores);
-                distributedSum += storeCustomerDZD;
-            }
-        } else {
-            storeCustomerDZD = s.totalUSD * rate;
-        }
-
-        // البحث عن المتجر في الإعدادات العامة لجلب شعاره بحجم 40px بجانب الاسم
-        const matchedStore = appData.stores && appData.stores.find(storeObj => storeObj.name === s.store);
-        const storeLogoHtml = matchedStore && matchedStore.logo 
-            ? `<img src="${matchedStore.logo}" style="width: 40px; height: 40px; object-fit: contain; vertical-align: middle; margin-inline-end: 6px; border-radius: 3px;">` 
-            : '';
-
-        let storeDisplayTotal = formatCurr(storeCustomerDZD);
-        storesHTML += `
-            <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">
-                    ${storeLogoHtml}<span>${s.store}</span>
-                </td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${s.pieces}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: end;">${storeDisplayTotal}</td>
-            </tr>
-        `;
+    const filtered = state.warehouse.filter(item => {
+        const matchesQuery = item.name.toLowerCase().includes(query) || 
+                             item.brand.toLowerCase().includes(query) || 
+                             item.model.toLowerCase().includes(query) || 
+                             item.type.toLowerCase().includes(query);
+        const matchesType = !typeFilter || item.type === typeFilter;
+        return matchesQuery && matchesType;
     });
 
-    const t = TRANSLATIONS[lang] || TRANSLATIONS['ar'];
-    const isRtl = lang === 'ar';
-    const badgeStyle = getStatusBadgeStyle(data.status);
-
-    let html = `
-        <div style="direction: ${isRtl ? 'rtl' : 'ltr'}; text-align: ${isRtl ? 'right' : 'left'}; font-size: 0.92rem; color: #1e293b; font-family: 'Cairo', sans-serif;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #059669; padding-bottom: 15px; margin-bottom: 15px;">
-                <div>
-                    <h2 style="color: #047857; margin: 0; font-size: 1.2rem;">${appData.settings.companyName}</h2>
-                    <p style="font-size: 0.75rem; color: #64748b; margin: 2px 0;">${appData.settings.email || ''} | ${appData.settings.phone || ''}</p>
-                </div>
-                <img src="${appData.settings.logo}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
-            </div>
-
-            <div style="text-align: center; margin-bottom: 15px;">
-                <h3 style="background: #ecfdf5; color: #047857; padding: 6px; border-radius: 6px; font-size: 1rem; margin: 0;">${t.invoiceTitleHeader}</h3>
-            </div>
-
-            <div style="margin-bottom: 15px; font-size: 0.85rem; line-height: 1.8;">
-                <div><strong>${t.invOrderNo}:</strong> ${data.id}</div>
-                <div><strong>${t.invOrderDate}:</strong> ${data.date}</div>
-                ${data.expDate ? `<div><strong>${t.invExpDate}:</strong> ${data.expDate}</div>` : ''}
-<div>
-    <strong>${t.invStatus}:</strong> 
-    <span style="${getStatusBadgeStyle(data.status)}">${data.status || '---'}</span>
-</div>
-            <div style="background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem;">
-                <div><strong>${t.invCustomerName}:</strong> ${data.customer.name || '---'}</div>
-                <div><strong>${t.invPhone}:</strong> ${data.customer.phone || '---'}</div>
-                <div><strong>${t.invWhatsapp}:</strong> ${data.customer.whatsapp || '---'}</div>
-                ${data.customer.address ? `<div><strong>${t.invAddress}:</strong> ${data.customer.address}</div>` : ''}
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.85rem;">
-                <thead>
-                    <tr style="background: #f1f5f9; color: #0f766e;">
-                        <th style="padding: 8px; text-align: ${isRtl ? 'right' : 'left'};">${t.tableStore}</th>
-                        <th style="padding: 8px; text-align: center;">${t.tableItemsCount}</th>
-                        <th style="padding: 8px; text-align: ${isRtl ? 'left' : 'right'};">${t.tableTotal}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${storesHTML}
-                </tbody>
-            </table>
-
-            <div style="border-top: 1px solid #cbd5e1; padding-top: 10px; font-size: 0.9rem;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span><strong>${t.invTotalAmount}:</strong></span>
-                    <span><strong>${formatCurr(data.customerTotalDZD)}</strong></span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #059669;">
-                    <span>${t.invTotalPaid}:</span>
-                    <span>${formatCurr(data.totalPaidDZD)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; color: #dc2626;">
-                    <span>${t.invRemaining}:</span>
-                    <span>${formatCurr(data.remainingDZD)}</span>
-                </div>
-            </div>
-
-            ${appData.settings.footerMessage ? `<div style="text-align: center; margin-top: 20px; font-size: 0.75rem; color: #64748b; border-top: 1px dashed #cbd5e1; padding-top: 10px;">${appData.settings.footerMessage}</div>` : ''}
-        </div>
-    `;
-
-    if (!customOrderData) {
-        const previewContainer = document.getElementById('customerInvoicePreview');
-        if (previewContainer) {
-            previewContainer.innerHTML = html;
-        }
-    }
-    return html;
-}
-// --- SAVE / EDIT ORDER ---
-function saveCurrentOrder() {
-    const orderData = gatherCurrentOrderFormData();
-    if (!orderData.customer.name || !orderData.customer.phone) {
-        alert('يرجى إدخال اسم الزبون ورقم الهاتف على الأقل.');
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">لا توجد معدات مطابقة للبحث</td></tr>`;
         return;
     }
 
-    const editId = document.getElementById('editOrderId').value;
-    if (editId) {
-        const index = appData.orders.findIndex(o => o.id === editId);
-        if (index !== -1) {
-            appData.orders[index] = orderData;
+    filtered.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-950/40 transition";
+        tr.innerHTML = `
+            <td class="p-4 font-bold text-white">${item.name}</td>
+            <td class="p-4 text-slate-300">${item.brand || '—'}</td>
+            <td class="p-4 text-slate-300">${item.model || '—'}</td>
+            <td class="p-4"><span class="px-2 py-1 rounded-md bg-slate-800 text-xs text-brand-400 font-semibold">${item.type}</span></td>
+            <td class="p-4 font-black text-brand-400 text-base">${item.qty}</td>
+            <td class="p-4 text-slate-400 text-xs">${item.notes || '—'}</td>
+            <td class="p-4 text-center">
+                <div class="flex items-center justify-center space-x-2 space-x-reverse">
+                    <button onclick="editEquipment('${item.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="تعديل"><i class="fa-solid fa-pen text-xs"></i></button>
+                    <button onclick="deleteEquipment('${item.id}')" class="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition" title="حذف"><i class="fa-solid fa-trash text-xs"></i></button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function openEquipmentModal() {
+    openModal('equipmentModal');
+}
+
+function saveEquipment(event) {
+    event.preventDefault();
+    const id = document.getElementById('equipId').value;
+    const name = document.getElementById('eqName').value.trim();
+    const brand = document.getElementById('eqBrand').value.trim();
+    const model = document.getElementById('eqModel').value.trim();
+    const type = document.getElementById('eqType').value.trim();
+    const qty = parseInt(document.getElementById('eqQty').value) || 0;
+    const notes = document.getElementById('eqNotes').value.trim();
+
+    if (id) {
+        const item = state.warehouse.find(e => e.id === id);
+        if (item) {
+            item.name = name;
+            item.brand = brand;
+            item.model = model;
+            item.type = type;
+            item.qty = qty;
+            item.notes = notes;
         }
     } else {
-        // Check duplicate id
-        if (appData.orders.some(o => o.id === orderData.id)) {
-            orderData.id = '#' + (parseInt(orderData.id.replace('#', '')) + 1);
-        }
-        appData.orders.unshift(orderData);
+        const newItem = {
+            id: 'eq_' + Date.now(),
+            name, brand, model, type, qty, notes
+        };
+        state.warehouse.push(newItem);
     }
 
-    saveToLocalStorage();
-    alert('تم حفظ الطلب بنجاح!');
-    document.querySelector('[data-target="orders-section"]').click();
+    persistData();
+    closeModal('equipmentModal');
+    renderWarehouse();
+    populateWarehouseTypeFilter();
 }
 
-function resetOrderForm() {
-    document.getElementById('editOrderId').value = '';
-    document.getElementById('orderForm').reset();
-    document.getElementById('orderDateInput').value = new Date().toISOString().split('T')[0];
-    document.getElementById('exchangeRateInput').value = '135';
-    generateNewOrderNumber();
-
-    document.getElementById('storesRowsContainer').innerHTML = '';
-    document.getElementById('paymentsRowsContainer').innerHTML = '';
-    addStoreRow();
-    addPaymentRow();
-    updateLivePreviewAndCalcs();
-    document.getElementById('orderFormTitle').textContent = TRANSLATIONS[appData.settings.defaultLang]['newOrderTitle'];
+function editEquipment(id) {
+    const item = state.warehouse.find(e => e.id === id);
+    if (!item) return;
+    openModal('equipmentModal');
+    document.getElementById('equipmentModalTitle').innerText = i18n[state.language].modalEditEquip;
+    document.getElementById('equipId').value = item.id;
+    document.getElementById('eqName').value = item.name;
+    document.getElementById('eqBrand').value = item.brand;
+    document.getElementById('eqModel').value = item.model;
+    document.getElementById('eqType').value = item.type;
+    document.getElementById('eqQty').value = item.qty;
+    document.getElementById('eqNotes').value = item.notes;
 }
 
-// --- ORDERS TABLE & DASHBOARD STATS ---
-function refreshAllViews() {
-    renderDashboardStats();
-    renderOrdersTable();
-    populateStoreFilters();
-    renderStoresGrid();
+function deleteEquipment(id) {
+    if (confirm(i18n[state.language].confirmDeleteEquip)) {
+        state.warehouse = state.warehouse.filter(e => e.id !== id);
+        persistData();
+        renderWarehouse();
+        populateWarehouseTypeFilter();
+    }
 }
 
-function renderDashboardStats() {
-    const orders = appData.orders;
-    document.getElementById('statTotalOrders').textContent = orders.length;
+function populateWarehouseTypeFilter() {
+    const select = document.getElementById('warehouseTypeFilter');
+    const currentVal = select.value;
+    const types = [...new Set(state.warehouse.map(e => e.type))];
+    
+    select.innerHTML = `<option value="">${i18n[state.language].allTypes}</option>`;
+    types.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.innerText = t;
+        if (t === currentVal) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
 
-    const uniqueCustomers = new Set(orders.map(o => o.customer.phone)).size;
-    document.getElementById('statTotalCustomers').textContent = uniqueCustomers;
 
-    const reportingCurr = appData.settings.reportingCurr;
+/* ==========================================
+   2. PROJECTS MANAGEMENT
+   ========================================== */
+function renderProjects() {
+    const query = document.getElementById('projectSearchInput').value.toLowerCase();
+    const grid = document.getElementById('projectsGrid');
+    grid.innerHTML = '';
 
-    let totalOrdersValDZD = 0;
-    let totalCollectedDZD = 0;
-    let totalRemainingDZD = 0;
-    let capitalDZD = 0;
-    let grossProfitDZD = 0;
+    const filtered = state.projects.filter(p => 
+        p.name.toLowerCase().includes(query) || p.venue.toLowerCase().includes(query) || (p.client && p.client.toLowerCase().includes(query))
+    );
 
-    orders.forEach(o => {
-        totalOrdersValDZD += o.customerTotalDZD;
-        totalCollectedDZD += o.totalPaidDZD;
-        totalRemainingDZD += o.remainingDZD;
-        capitalDZD += o.costDZD;
-        grossProfitDZD += o.grossProfit;
+    if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500">لا توجد مشاريع حالياً. اضغط على "إضافة مشروع جديد" للبدء.</div>`;
+        return;
+    }
+
+    filtered.forEach(proj => {
+        const currentVersion = proj.versions.find(v => v.id === proj.currentVersionId) || proj.versions[0];
+        const totalEquipQty = currentVersion ? currentVersion.equipment.reduce((sum, item) => sum + item.requiredQty, 0) : 0;
+        const equipTypesCount = currentVersion ? currentVersion.equipment.length : 0;
+
+        const card = document.createElement('div');
+        card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl hover:border-brand-500/50 transition flex flex-col justify-between";
+        card.innerHTML = `
+            <div>
+                <div class="flex justify-between items-start mb-3">
+                    <span class="text-xs px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 font-bold border border-brand-500/20">${currentVersion ? currentVersion.name : 'V1'}</span>
+                    <span class="text-xs text-slate-400"><i class="fa-solid fa-calendar ml-1 text-brand-400"></i>${proj.eventDate}</span>
+                </div>
+                <h3 onclick="openProjectDetail('${proj.id}')" class="text-xl font-bold text-white hover:text-brand-400 cursor-pointer transition mb-1">${proj.name}</h3>
+                <p class="text-xs text-slate-400 mb-4"><i class="fa-solid fa-location-dot ml-1 text-brand-400"></i>${proj.venue}</p>
+                
+                <div class="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800/80 mb-4 text-xs">
+                    <div><span class="text-slate-500 block">أنواع المعدات:</span><strong class="text-slate-200 text-sm">${equipTypesCount}</strong></div>
+                    <div><span class="text-slate-500 block">إجمالي الكمية:</span><strong class="text-brand-400 text-sm">${totalEquipQty}</strong></div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-slate-800/80 gap-2">
+                <button onclick="openProjectDetail('${proj.id}')" class="flex-1 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow transition flex items-center justify-center space-x-1 space-x-reverse">
+                    <i class="fa-solid fa-folder-open"></i><span>فتح</span>
+                </button>
+                <button onclick="editProject('${proj.id}')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="تعديل"><i class="fa-solid fa-pen text-xs"></i></button>
+                <button onclick="duplicateProject('${proj.id}')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-400 transition" title="نسخ المشروع"><i class="fa-solid fa-copy text-xs"></i></button>
+                <button onclick="deleteProject('${proj.id}')" class="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition" title="حذف"><i class="fa-solid fa-trash text-xs"></i></button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function saveProject(event) {
+    event.preventDefault();
+    const id = document.getElementById('projectId').value;
+    const name = document.getElementById('projName').value.trim();
+    const client = document.getElementById('projClient').value.trim();
+    const venue = document.getElementById('projVenue').value.trim();
+    const eventDate = document.getElementById('projDate').value;
+    const eventTime = document.getElementById('projTime').value;
+    const setupDate = document.getElementById('projSetupDate').value;
+    const notes = document.getElementById('projNotes').value.trim();
+
+    if (id) {
+        const proj = state.projects.find(p => p.id === id);
+        if (proj) {
+            proj.name = name;
+            proj.client = client;
+            proj.venue = venue;
+            proj.eventDate = eventDate;
+            proj.eventTime = eventTime;
+            proj.setupDate = setupDate;
+            proj.notes = notes;
+            persistData();
+            closeModal('projectModal');
+            if (state.activeTab === 'project-detail' && state.currentProjectId === id) {
+                renderProjectDetailView();
+            } else {
+                renderProjects();
+            }
+        }
+    } else {
+        const newProjId = 'proj_' + Date.now();
+        const firstVersionId = 'v_' + Date.now();
+        const newProj = {
+            id: newProjId,
+            name, client, venue, eventDate, eventTime, setupDate, notes,
+            currentVersionId: firstVersionId,
+            versions: [
+                {
+                    id: firstVersionId,
+                    name: 'Version 1 - Initial',
+                    date: new Date().toISOString().split('T')[0],
+                    notes: 'Initial setup',
+                    equipment: []
+                }
+            ]
+        };
+        state.projects.push(newProj);
+        persistData();
+        closeModal('projectModal');
+        openProjectDetail(newProjId);
+    }
+}
+
+function editProject(id) {
+    const proj = state.projects.find(p => p.id === id);
+    if (!proj) return;
+    openModal('projectModal');
+    document.getElementById('projectModalTitle').innerText = i18n[state.language].modalEditProject;
+    document.getElementById('projectId').value = proj.id;
+    document.getElementById('projName').value = proj.name;
+    document.getElementById('projClient').value = proj.client || '';
+    document.getElementById('projVenue').value = proj.venue;
+    document.getElementById('projDate').value = proj.eventDate;
+    document.getElementById('projTime').value = proj.eventTime || '';
+    document.getElementById('projSetupDate').value = proj.setupDate || '';
+    document.getElementById('projNotes').value = proj.notes || '';
+}
+
+function openProjectModalForEdit() {
+    if (state.currentProjectId) {
+        editProject(state.currentProjectId);
+    }
+}
+
+function deleteProject(id) {
+    if (confirm(i18n[state.language].confirmDeleteProject)) {
+        state.projects = state.projects.filter(p => p.id !== id);
+        persistData();
+        if (state.currentProjectId === id) {
+            switchTab('projects');
+        } else {
+            renderProjects();
+        }
+    }
+}
+
+function duplicateProject(id) {
+    const proj = state.projects.find(p => p.id === id);
+    if (!proj) return;
+    const newId = 'proj_' + Date.now();
+    const cloned = JSON.parse(JSON.stringify(proj));
+    cloned.id = newId;
+    cloned.name = proj.name + ' (Copy)';
+    state.projects.push(cloned);
+    persistData();
+    renderProjects();
+}
+
+
+/* ==========================================
+   3. PROJECT DETAIL & VERSIONS VIEW
+   ========================================== */
+function openProjectDetail(projId) {
+    state.currentProjectId = projId;
+    const proj = state.projects.find(p => p.id === projId);
+    if (!proj) return;
+    if (!proj.currentVersionId && proj.versions.length > 0) {
+        proj.currentVersionId = proj.versions[0].id;
+    }
+    state.currentVersionId = proj.currentVersionId;
+    switchTab('project-detail');
+}
+
+function renderProjectDetailView() {
+    const proj = state.projects.find(p => p.id === state.currentProjectId);
+    if (!proj) return;
+
+    // Header Info
+    document.getElementById('detailProjectName').innerText = proj.name;
+    const clientBadge = document.getElementById('detailClientBadge');
+    if (proj.client) {
+        clientBadge.innerText = proj.client;
+        clientBadge.classList.remove('hidden');
+    } else {
+        clientBadge.classList.add('hidden');
+    }
+    document.getElementById('detailProjectNotes').innerText = proj.notes || '';
+    document.getElementById('detailVenue').innerText = proj.venue;
+    document.getElementById('detailEventDate').innerText = proj.eventDate;
+    document.getElementById('detailEventTime').innerText = proj.eventTime || '—';
+
+    // Versions Tabs
+    const versionsContainer = document.getElementById('versionsTabsContainer');
+    versionsContainer.innerHTML = '';
+    proj.versions.forEach(v => {
+        const isActive = v.id === state.currentVersionId;
+        const btn = document.createElement('button');
+        btn.onclick = () => {
+            state.currentVersionId = v.id;
+            proj.currentVersionId = v.id;
+            persistData();
+            renderProjectDetailView();
+        };
+        btn.className = `px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${isActive ? 'bg-brand-600 text-white shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`;
+        btn.innerText = v.name;
+        versionsContainer.appendChild(btn);
     });
 
-    const formatRep = (valDZD) => {
-        if (reportingCurr === 'USD') {
-            // average rate or per order conversion approximation for report
-            const avgRate = orders.length > 0 ? orders.reduce((s, o) => s + o.exchangeRate, 0) / orders.length : 135;
-            return (valDZD / avgRate).toFixed(2) + ' USD';
+    // Current Version Details
+    const currentVersion = proj.versions.find(v => v.id === state.currentVersionId) || proj.versions[0];
+    if (currentVersion) {
+        state.currentVersionId = currentVersion.id;
+        document.getElementById('currentVersionTitle').innerText = currentVersion.name;
+        document.getElementById('currentVersionNotes').innerText = currentVersion.notes || '';
+
+        // Render Equipment Table
+        const tbody = document.getElementById('projectEquipmentTableBody');
+        tbody.innerHTML = '';
+        let totalQty = 0;
+
+        if (currentVersion.equipment.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-500">لا توجد معدات مضافة لهذه النسخة. اضغط على "إضافة معدات للنسخة".</td></tr>`;
+        } else {
+            currentVersion.equipment.forEach((item, index) => {
+                const warehouseItem = state.warehouse.find(w => w.id === item.warehouseId);
+                const warehouseQty = warehouseItem ? warehouseItem.qty : 0;
+                const shortage = Math.max(0, item.requiredQty - warehouseQty);
+                totalQty += item.requiredQty;
+
+                let statusBadge = '';
+                if (shortage === 0) {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold">متوفر بالكامل</span>`;
+                } else if (item.requiredQty > shortage) {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold">متوفر جزئياً</span>`;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold">غير متوفر</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-950/40 transition";
+                tr.innerHTML = `
+                    <td class="p-4 font-bold text-white">${warehouseItem ? warehouseItem.name : 'معدة محذوفة'}</td>
+                    <td class="p-4 text-slate-300">${warehouseItem ? warehouseItem.brand : '—'}</td>
+                    <td class="p-4 text-slate-300">${warehouseItem ? warehouseItem.model : '—'}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded-md bg-slate-800 text-xs text-brand-400 font-semibold">${warehouseItem ? warehouseItem.type : '—'}</span></td>
+                    <td class="p-4 font-black text-brand-400 text-base">
+                        <input type="number" min="1" value="${item.requiredQty}" onchange="updateProjectEquipQty('${currentVersion.id}', '${item.warehouseId}', this.value)" class="w-20 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-center text-white focus:outline-none focus:border-brand-500">
+                    </td>
+                    <td class="p-4 font-bold text-slate-200">${warehouseQty}</td>
+                    <td class="p-4 font-bold ${shortage > 0 ? 'text-red-400' : 'text-slate-500'}">${shortage > 0 ? '+' + shortage : '0'}</td>
+                    <td class="p-4">${statusBadge}</td>
+                    <td class="p-4">
+                        <input type="text" value="${item.notes || ''}" onchange="updateProjectEquipNotes('${currentVersion.id}', '${item.warehouseId}', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-300 focus:outline-none focus:border-brand-500" placeholder="ملاحظة...">
+                    </td>
+                    <td class="p-4 text-center">
+                        <button onclick="removeEquipmentFromProject('${currentVersion.id}', '${item.warehouseId}')" class="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition" title="حذف"><i class="fa-solid fa-trash text-xs"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
-        return valDZD.toLocaleString() + ' DZD';
+
+        document.getElementById('detailTotalQty').innerText = totalQty;
+        document.getElementById('detailTypesCount').innerText = `${currentVersion.equipment.length} أنواع معدات`;
+    }
+}
+
+// Add Equipment to Project Flow
+function openAddProjectEquipModal() {
+    openModal('addProjectEquipModal');
+}
+
+function populateWarehouseSelectForProject() {
+    const select = document.getElementById('selectWarehouseItem');
+    select.innerHTML = '';
+    state.warehouse.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.setAttribute('data-qty', item.qty);
+        opt.innerText = `${item.name} (${item.brand} - ${item.type}) [متوفر: ${item.qty}]`;
+        select.appendChild(opt);
+    });
+    onWarehouseItemSelected();
+}
+
+function onWarehouseItemSelected() {
+    const select = document.getElementById('selectWarehouseItem');
+    const selectedOpt = select.options[select.selectedIndex];
+    if (selectedOpt) {
+        const availableQty = parseInt(selectedOpt.getAttribute('data-qty')) || 0;
+        document.getElementById('modalAvailableQtyDisplay').innerText = availableQty;
+        const reqInput = document.getElementById('projEquipReqQty');
+        reqInput.max = availableQty * 5; // Allow warning but don't hard block input
+        checkQuantityWarning();
+    }
+}
+
+function checkQuantityWarning() {
+    const select = document.getElementById('selectWarehouseItem');
+    const selectedOpt = select.options[select.selectedIndex];
+    if (!selectedOpt) return;
+    const availableQty = parseInt(selectedOpt.getAttribute('data-qty')) || 0;
+    const requestedQty = parseInt(document.getElementById('projEquipReqQty').value) || 0;
+    const warningMsg = document.getElementById('quantityWarningMsg');
+
+    if (requestedQty > availableQty) {
+        const shortage = requestedQty - availableQty;
+        warningMsg.innerText = `تنبيه: الكمية المطلوبة (${requestedQty}) أكبر من المتوفر في المستودع (${availableQty}). النقص: ${shortage}`;
+        warningMsg.classList.remove('hidden');
+    } else {
+        warningMsg.classList.add('hidden');
+    }
+}
+
+function confirmAddEquipmentToProject(event) {
+    event.preventDefault();
+    const proj = state.projects.find(p => p.id === state.currentProjectId);
+    if (!proj) return;
+    const currentVersion = proj.versions.find(v => v.id === state.currentVersionId);
+    if (!currentVersion) return;
+
+    const warehouseId = document.getElementById('selectWarehouseItem').value;
+    const requiredQty = parseInt(document.getElementById('projEquipReqQty').value) || 0;
+    const notes = document.getElementById('projEquipNotes').value.trim();
+
+    // Check if equipment already exists in this version
+    const existing = currentVersion.equipment.find(e => e.warehouseId === warehouseId);
+    if (existing) {
+        existing.requiredQty += requiredQty;
+        if (notes) existing.notes = notes;
+    } else {
+        currentVersion.equipment.push({ warehouseId, requiredQty, notes });
+    }
+
+    persistData();
+    closeModal('addProjectEquipModal');
+    renderProjectDetailView();
+}
+
+function updateProjectEquipQty(versionId, warehouseId, newQty) {
+    const proj = state.projects.find(p => p.id === state.currentProjectId);
+    if (!proj) return;
+    const version = proj.versions.find(v => v.id === versionId);
+    if (!version) return;
+    const item = version.equipment.find(e => e.warehouseId === warehouseId);
+    if (item) {
+        item.requiredQty = Math.max(1, parseInt(newQty) || 1);
+        persistData();
+        renderProjectDetailView();
+    }
+}
+
+function updateProjectEquipNotes(versionId, warehouseId, newNotes) {
+    const proj = state.projects.find(p => p.id === state.currentProjectId);
+    if (!proj) return;
+    const version = proj.versions.find(v => v.id === versionId);
+    if (!version) return;
+    const item = version.equipment.find(e => e.warehouseId === warehouseId);
+    if (item) {
+        item.notes = newNotes;
+        persistData();
+    }
+}
+
+function removeEquipmentFromProject(versionId, warehouseId) {
+    const proj = state.projects.find(p => p.id === state.currentProjectId);
+    if (!proj) return;
+    const version = proj.versions.find(v => v.id === versionId);
+    if (!version) return;
+    version.equipment = version.equipment.filter(e => e.warehouseId !== warehouseId);
+    persistData();
+    renderProjectDetailView();
+}
+
+// Versions Management
+function openNewVersionModal() {
+    document.getElementById('newVersionNameInput').value = `Version ${(state.projects.find(p => p.id === state.currentProjectId)?.versions.length || 0) + 1}`;
+    document.getElementById('newVersionNotesInput').value = '';
+    openModal('newVersionModal');
+}
+
+function createNewVersion(event) {
+    event.preventDefault();
+    const proj = state.projects.find(p => p.id === state.currentProjectId);
+    if (!proj) return;
+
+    const name = document.getElementById('newVersionNameInput').value.trim();
+    const notes = document.getElementById('newVersionNotesInput').value.trim();
+    const newVersionId = 'v_' + Date.now();
+
+    // Deep clone equipment from current version as starting point
+    const currentVersion = proj.versions.find(v => v.id === state.currentVersionId) || proj.versions[proj.versions.length - 1];
+    const clonedEquip = currentVersion ? JSON.parse(JSON.stringify(currentVersion.equipment)) : [];
+
+    const newVersion = {
+        id: newVersionId,
+        name,
+        date: new Date().toISOString().split('T')[0],
+        notes,
+        equipment: clonedEquip
     };
 
-    document.getElementById('statTotalOrdersValue').textContent = formatRep(totalOrdersValDZD);
-    document.getElementById('statTotalCollectedValue').textContent = formatRep(totalCollectedDZD);
-    document.getElementById('statTotalRemainingValue').textContent = formatRep(totalRemainingDZD);
-    document.getElementById('statCapitalValue').textContent = formatRep(capitalDZD);
-    document.getElementById('statGrossProfitValue').textContent = formatRep(grossProfitDZD);
-    document.getElementById('statNetProfitValue').textContent = formatRep(grossProfitDZD);
+    proj.versions.push(newVersion);
+    proj.currentVersionId = newVersionId;
+    state.currentVersionId = newVersionId;
+    persistData();
+    closeModal('newVersionModal');
+    renderProjectDetailView();
 }
 
-function renderOrdersTable() {
-    const tbody = document.getElementById('ordersTableBody');
-    if (!tbody) return;
+function editCurrentVersionMeta() {
+    const proj = state.projects.find(p => p.id === state.currentProjectId);
+    if (!proj) return;
+    const version = proj.versions.find(v => v.id === state.currentVersionId);
+    if (!version) return;
 
-    const statusFilter = document.getElementById('filterStatus').value;
-    const storeFilter = document.getElementById('filterStore').value;
-    const dateFilter = document.getElementById('filterDate').value;
-    const searchVal = document.getElementById('globalSearchInput').value.toLowerCase();
+    document.getElementById('editVersionNameInput').value = version.name;
+    document.getElementById('editVersionNotesInput').value = version.notes || '';
+    openModal('editVersionModal');
+}
 
-    let filtered = appData.orders.filter(o => {
-        let matchStatus = !statusFilter || o.status === statusFilter;
-        let matchStore = !storeFilter || o.stores.some(s => s.store === storeFilter);
-        let matchDate = !dateFilter || o.date === dateFilter;
-        let matchSearch = !searchVal || o.id.toLowerCase().includes(searchVal) || o.customer.name.toLowerCase().includes(searchVal) || o.customer.phone.includes(searchVal);
-        return matchStatus && matchStore && matchDate && matchSearch;
-    });
+function saveEditedVersionMeta(event) {
+    event.preventDefault();
+    const proj = state.projects.find(p => p.id === state.currentProjectId);
+    if (!proj) return;
+    const version = proj.versions.find(v => v.id === state.currentVersionId);
+    if (!version) return;
 
-    let html = '';
-    filtered.forEach(o => {
-        const storesStr = o.stores.map(s => `${s.store} (${s.pieces})`).join(', ');
-        const badgeClass = `badge-${o.status}`;
-        html += `
-            <tr>
-                <td><strong>${o.id}</strong></td>
-                <td>${o.date}</td>
-                <td>${o.customer.name}<br><small style="color:#64748b;">${o.customer.phone}</small></td>
-                <td><small>${storesStr}</small></td>
-                <td>${o.customerTotalDZD.toLocaleString()} DZD</td>
-                <td>${o.totalPaidDZD.toLocaleString()} DZD</td>
-                <td><span class="${o.remainingDZD > 0 ? 'text-danger' : 'text-success'}">${o.remainingDZD.toLocaleString()} DZD</span></td>
-                <td><span class="text-success">${o.grossProfit.toLocaleString()} DZD</span></td>
-                <td><span class="badge-status ${badgeClass}">${o.status}</span></td>
-                <td>
-                    <button class="btn-sm btn-secondary" onclick="viewOrderDetails('${o.id}')" title="عرض"><i class="fa-solid fa-eye"></i></button>
-                    <button class="btn-sm btn-emerald" onclick="editOrder('${o.id}')" title="تعديل"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn-sm btn-dark" onclick="openInternalReport('${o.id}')" title="تقرير داخلي"><i class="fa-solid fa-file-lines"></i></button>
-                    <button class="btn-sm btn-whatsapp" onclick="sendOrderWhatsapp('${o.id}')" title="WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
-                    <button class="btn-sm btn-secondary" onclick="downloadOrderPDF('${o.id}')" title="PDF"><i class="fa-solid fa-file-pdf"></i></button>
-                    <button class="btn-sm btn-secondary text-danger" onclick="deleteOrder('${o.id}')" title="حذف"><i class="fa-solid fa-trash"></i></button>
+    version.name = document.getElementById('editVersionNameInput').value.trim();
+    version.notes = document.getElementById('editVersionNotesInput').value.trim();
+    persistData();
+    closeModal('editVersionModal');
+    renderProjectDetailView();
+}
+
+function deleteCurrentVersion() {
+    const proj = state.projects.find(p => p.id === state.currentProjectId);
+    if (!proj) return;
+    if (proj.versions.length <= 1) {
+        alert('لا يمكن حذف النسخة الوحيدة المتبقية في المشروع.');
+        return;
+    }
+    if (confirm(i18n[state.language].confirmDeleteVersion)) {
+        proj.versions = proj.versions.filter(v => v.id !== state.currentVersionId);
+        proj.currentVersionId = proj.versions[0].id;
+        state.currentVersionId = proj.currentVersionId;
+        persistData();
+        renderProjectDetailView();
+    }
+}
+
+
+/* ==========================================
+   4. PROFESSIONAL A4 PRINT & PDF ENGINE
+   ========================================== */
+function printCurrentVersion() {
+    const proj = state.projects.find(p => p.id === state.currentProjectId);
+    if (!proj) return;
+    const version = proj.versions.find(v => v.id === state.currentVersionId);
+    if (!version) return;
+
+    const printArea = document.getElementById('printArea');
+    if (!printArea) return;
+
+    let rowsHTML = '';
+    let totalReq = 0;
+
+    version.equipment.forEach((item, idx) => {
+        const wh = state.warehouse.find(w => w.id === item.warehouseId);
+        const whQty = wh ? wh.qty : 0;
+        const shortage = Math.max(0, item.requiredQty - whQty);
+        totalReq += item.requiredQty;
+
+        rowsHTML += `
+            <tr style="border-bottom: 1px solid #edf2f7; transition: background 0.2s;">
+                <td style="padding: 12px 10px; text-align: center; font-weight: 700; color: #4a5568;">${idx + 1}</td>
+                <td style="padding: 12px 10px; font-weight: 700; color: #1a202c;">${wh ? wh.name : '—'}</td>
+                <td style="padding: 12px 10px; color: #4a5568;">${wh ? wh.brand : '—'}</td>
+                <td style="padding: 12px 10px; color: #4a5568;">${wh ? wh.model : '—'}</td>
+                <td style="padding: 12px 10px; color: #4a5568;">${wh ? wh.type : '—'}</td>
+                <td style="padding: 12px 10px; text-align: center; font-weight: 800; color: #2f855a;">${item.requiredQty}</td>
+                <td style="padding: 12px 10px; text-align: center; color: #4a5568; font-weight: 600;">${whQty}</td>
+                <td style="padding: 12px 10px; text-align: center; color: ${shortage > 0 ? '#e53e3e' : '#718096'}; font-weight: 800;">
+                    ${shortage > 0 ? `+${shortage}` : '0'}
                 </td>
+                <td style="padding: 12px 10px; color: #718096; font-size: 11px;">${item.notes || '—'}</td>
             </tr>
         `;
     });
 
-    tbody.innerHTML = html || `<tr><td colspan="10" style="text-align:center; padding:20px; color:#64748b;">لا توجد طلبات مطابقة</td></tr>`;
-}
+    const isRtl = state.language === 'ar';
 
-function populateStoreFilters() {
-    const filterStoreSelect = document.getElementById('filterStore');
-    if (!filterStoreSelect) return;
-    let opts = `<option value="">جميع المواقع</option>`;
-    appData.stores.forEach(s => {
-        opts += `<option value="${s.name}">${s.name}</option>`;
-    });
-    filterStoreSelect.innerHTML = opts;
-}
-
-// --- ACTIONS ON ORDERS (VIEW, EDIT, PDF, WHATSAPP, DELETE, INTERNAL) ---
-function viewOrderDetails(id) {
-    const o = appData.orders.find(item => item.id === id);
-    if (!o) return;
-    document.querySelector('[data-target="new-order-section"]').click();
-    fillOrderFormForEdit(o);
-}
-
-function editOrder(id) {
-    const o = appData.orders.find(item => item.id === id);
-    if (!o) return;
-    document.querySelector('[data-target="new-order-section"]').click();
-    fillOrderFormForEdit(o);
-}
-
-function fillOrderFormForEdit(o) {
-    document.getElementById('editOrderId').value = o.id;
-    document.getElementById('orderNumberInput').value = o.id;
-    document.getElementById('orderDateInput').value = o.date;
-    document.getElementById('orderExpDateInput').value = o.expDate || '';
-    document.getElementById('orderStatusInput').value = o.status;
-    document.getElementById('orderNotesInput').value = o.notes || '';
-
-    document.getElementById('custNameInput').value = o.customer.name;
-    document.getElementById('custPhoneInput').value = o.customer.phone;
-    document.getElementById('custWhatsappInput').value = o.customer.whatsapp;
-    document.getElementById('custAddressInput').value = o.customer.address || '';
-
-    document.getElementById('exchangeRateInput').value = o.exchangeRate;
-    document.getElementById('customerTotalDZDInput').value = o.customerTotalDZD;
-
-    document.getElementById('invoiceLangSelect').value = o.invoiceLang || 'ar';
-    document.getElementById('invoiceCurrSelect').value = o.invoiceCurr || 'DZD';
-
-    // Stores rows
-    const storesContainer = document.getElementById('storesRowsContainer');
-    storesContainer.innerHTML = '';
-    o.stores.forEach(s => addStoreRow(s.store, s.pieces, s.totalUSD));
-
-    // Payments rows
-    const paymentsContainer = document.getElementById('paymentsRowsContainer');
-    paymentsContainer.innerHTML = '';
-    o.payments.forEach(p => addPaymentRow(p.date, p.amount));
-
-    updateLivePreviewAndCalcs();
-    document.getElementById('orderFormTitle').textContent = 'تعديل الطلب ' + o.id;
-}
-
-function deleteOrder(id) {
-    if (confirm('هل أنت متأكد من حذف هذا الطلب نهائياً؟')) {
-        appData.orders = appData.orders.filter(o => o.id !== id);
-        saveToLocalStorage();
-        refreshAllViews();
-    }
-}
-
-// --- HIGH RESOLUTION CRISP PDF EXPORT ---
-function exportHighQualityPDF(htmlContent, filename, explicitDir = null) {
-    // Detect target direction (e.g. 'ltr' for English/French, 'rtl' for Arabic)
-    const isRtl = explicitDir ? (explicitDir === 'rtl') : (htmlContent.includes('direction: rtl') || (!htmlContent.includes('direction: ltr') && (document.documentElement.getAttribute('dir') || 'rtl') === 'rtl'));
-    const targetDir = isRtl ? 'rtl' : 'ltr';
-
-    // Store original document root direction
-    const originalDocDir = document.documentElement.getAttribute('dir') || 'rtl';
-
-    // Outer hidden wrapper positioned at (0,0) to ensure exact coordinates without offset clipping
-    const wrapper = document.createElement('div');
-    wrapper.setAttribute('dir', targetDir);
-    wrapper.style.direction = targetDir;
-    wrapper.style.position = 'fixed';
-    wrapper.style.left = '0';
-    wrapper.style.top = '0';
-    wrapper.style.zIndex = '-99999';
-    wrapper.style.opacity = '0.01';
-    wrapper.style.pointerEvents = 'none';
-    wrapper.style.width = '794px';
-    wrapper.style.overflow = 'hidden';
-
-    // Printable container with standard block flow for accurate height calculation
-    const tempContainer = document.createElement('div');
-    tempContainer.setAttribute('dir', targetDir);
-    tempContainer.style.direction = targetDir;
-    tempContainer.style.width = '794px'; // 210mm A4 standard width at 96 DPI
-    tempContainer.style.backgroundColor = '#ffffff';
-    tempContainer.style.padding = '24px 30px';
-    tempContainer.style.boxSizing = 'border-box';
-    tempContainer.style.fontFamily = "'Cairo', sans-serif";
-    tempContainer.style.color = '#1e293b';
-    tempContainer.innerHTML = htmlContent;
-
-    wrapper.appendChild(tempContainer);
-    document.body.appendChild(wrapper);
-
-    // html2canvas aligns canvas coordinates according to document root direction
-    document.documentElement.setAttribute('dir', targetDir);
-
-    const safeFilename = filename.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
-
-    const opt = {
-        margin: 0, // Margin is 0 because tempContainer's internal padding (30px) provides standard printable margins
-        filename: safeFilename,
-        image: { type: 'jpeg', quality: 1.0 },
-        html2canvas: {
-            scale: 3,                // 3x resolution (300+ DPI equivalent) for crisp text & graphics
-            useCORS: true,           // Load external logos cleanly
-            letterRendering: true,   // Accurate glyph positioning
-            logging: false,
-            scrollX: 0,
-            scrollY: 0
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    const cleanup = () => {
-        document.documentElement.setAttribute('dir', originalDocDir);
-        if (wrapper && wrapper.parentNode) {
-            wrapper.parentNode.removeChild(wrapper);
-        }
-    };
-
-    return html2pdf()
-        .set(opt)
-        .from(tempContainer)
-        .save()
-        .then(() => {
-            cleanup();
-        })
-        .catch(err => {
-            console.error('PDF export error:', err);
-            cleanup();
-        });
-}
-
-function downloadCustomerPDF() {
-    const btn = document.getElementById('previewPdfBtn');
-    const originalText = btn ? btn.innerHTML : '';
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span data-i18n="btnPrintPdf">جاري التصدير...</span>';
-    }
-
-    const orderData = gatherCurrentOrderFormData();
-    const rawOrderId = orderData.id || document.getElementById('orderNumberInput').value || 'invoice';
-    const cleanId = String(rawOrderId).replace(/[^a-zA-Z0-9_-]/g, '_');
-    const htmlContent = renderInvoicePreviewHTML(orderData);
-    const invoiceLang = orderData.invoiceLang || 'ar';
-    const dir = invoiceLang === 'ar' ? 'rtl' : 'ltr';
-
-    exportHighQualityPDF(htmlContent, `Invoice_${cleanId}.pdf`, dir)
-        .finally(() => {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        });
-}
-
-function downloadOrderPDF(id) {
-    const o = appData.orders.find(item => item.id === id);
-    if (!o) return;
-    const cleanId = String(o.id || 'invoice').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const htmlContent = renderInvoicePreviewHTML(o);
-    const invoiceLang = o.invoiceLang || 'ar';
-    const dir = invoiceLang === 'ar' ? 'rtl' : 'ltr';
-    exportHighQualityPDF(htmlContent, `Invoice_${cleanId}.pdf`, dir);
-}
-
-function sendCustomerWhatsApp() {
-    const data = gatherCurrentOrderFormData();
-    sendWhatsappMessageForOrder(data);
-}
-
-function sendOrderWhatsapp(id) {
-    const o = appData.orders.find(item => item.id === id);
-    if (!o) return;
-    sendWhatsappMessageForOrder(o);
-}
-
-function sendWhatsappMessageForOrder(o) {
-    const storesStr = o.stores.map(s => `${s.store} - ${s.pieces} items`).join('\n');
-    const msg =
-        `${appData.settings.companyName}
-Order Number: ${o.id}
-Customer: ${o.customer.name}
-Order Date: ${o.date}
-${o.expDate ? `Expected Delivery: ${o.expDate}` : ''}
-Status: ${o.status}
-Stores:
-${storesStr}
-Total: ${o.customerTotalDZD.toLocaleString()} DZD
-Paid: ${o.totalPaidDZD.toLocaleString()} DZD
-Remaining: ${o.remainingDZD.toLocaleString()} DZD
-Thank you for choosing ${appData.settings.companyName}.`;
-
-    const cleanPhone = o.customer.whatsapp.replace(/[^0-9]/g, '');
-    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
-}
-
-// --- INTERNAL REPORT ---
-function openInternalReport(id) {
-    const o = appData.orders.find(item => item.id === id);
-    if (!o) return;
-
-    let paymentsList = o.payments.map(p => `<li>${p.date}: ${p.amount.toLocaleString()} DZD</li>`).join('');
-    let storesList = o.stores.map(s => `<li>${s.store} (${s.pieces} pcs) - ${s.totalUSD} USD</li>`).join('');
-
-    let html = `
-        <div style="font-size: 0.9rem; line-height: 1.6;">
-            <p><strong>رقم الطلب:</strong> ${o.id}</p>
-            <p><strong>تاريخ الطلب:</strong> ${o.date} | <strong>التسليم المتوقع:</strong> ${o.expDate || 'غير محدد'}</p>
-            <p><strong>الزبون:</strong> ${o.customer.name} (${o.customer.phone})</p>
-            <p><strong>المواقع:</strong><ul>${storesList}</ul></p>
-            <hr style="margin: 10px 0; border:0; border-top:1px solid #e2e8f0;">
-            <p><strong>إجمالي تكلفة الشراء:</strong> ${o.purchaseUSD.toFixed(2)} USD</p>
-            <p><strong>سعر الصرف المستخدم:</strong> 1 USD = ${o.exchangeRate} DZD</p>
-            <p><strong>التكلفة بالدينار:</strong> ${o.costDZD.toLocaleString()} DZD</p>
-            <p><strong>إجمالي المطلوب من الزبون:</strong> ${o.customerTotalDZD.toLocaleString()} DZD</p>
-            <p><strong>الدفعات المسجلة:</strong><ul>${paymentsList}</ul></p>
-            <p><strong>إجمالي المدفوع:</strong> ${o.totalPaidDZD.toLocaleString()} DZD</p>
-            <p><strong>المتبقي:</strong> ${o.remainingDZD.toLocaleString()} DZD</p>
-            <hr style="margin: 10px 0; border:0; border-top:1px solid #e2e8f0;">
-            <p><strong>رأس المال (التكلفة):</strong> ${o.costDZD.toLocaleString()} DZD</p>
-            <p><strong>الربح الإجمالي:</strong> <span class="text-success">${o.grossProfit.toLocaleString()} DZD</span></p>
-            <p><strong>صافي الربح:</strong> <span class="text-success">${o.netProfit.toLocaleString()} DZD</span></p>
-            <p><strong>الحالة:</strong> ${o.status}</p>
-        </div>
-    `;
-
-    document.getElementById('internalReportContent').innerHTML = html;
-    document.getElementById('internalReportModal').classList.remove('d-none');
-}
-
-function printInternalPDF() {
-    const btn = document.getElementById('printInternalPdfBtn');
-    const originalText = btn ? btn.innerHTML : '';
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التصدير...';
-    }
-
-    const element = document.getElementById('internalReportContent');
-    const isRtl = (document.documentElement.getAttribute('dir') || 'rtl') === 'rtl';
-    const reportHtml = `
-        <div style="direction: ${isRtl ? 'rtl' : 'ltr'}; text-align: ${isRtl ? 'right' : 'left'}; font-family: 'Cairo', sans-serif;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f766e; padding-bottom: 12px; margin-bottom: 16px;">
+    printArea.innerHTML = `
+        <div style="font-family: 'Cairo', 'Inter', sans-serif; padding: 30px; color: #1a202c; direction: ${isRtl ? 'rtl' : 'ltr'}; background: #ffffff;">
+            
+            <!-- Header احترافي وفاخر -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a202c; padding-bottom: 20px; margin-bottom: 25px;">
                 <div>
-                    <h2 style="color: #0f766e; margin: 0; font-size: 1.2rem;">${appData.settings.companyName}</h2>
-                    <p style="font-size: 0.8rem; color: #64748b; margin: 2px 0;">تقرير الطلب الداخلي المفصل</p>
+                    <h1 style="font-size: 22px; font-weight: 900; margin: 0; color: #1a202c; letter-spacing: 0.5px;">STAGE LIGHTING SPECIFICATION</h1>
+                    <p style="font-size: 11px; color: #718096; margin: 4px 0 0 0; font-weight: 600;">StageLight Pro — Professional Event Equipment Sheet</p>
                 </div>
-                <img src="${appData.settings.logo}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover;">
+                <div style="text-align: ${isRtl ? 'left' : 'right'};">
+                    <h2 style="font-size: 15px; font-weight: 800; margin: 0; color: #2f855a;">${proj.name}</h2>
+                    <p style="font-size: 11px; color: #4a5568; margin: 3px 0;">Version: <strong>${version.name}</strong></p>
+                    <p style="font-size: 11px; color: #718096; margin: 0;">Date: ${new Date().toISOString().split('T')[0]}</p>
+                </div>
             </div>
-            ${element ? element.innerHTML : ''}
+
+            <!-- Project Info Grid (بطاقة معلومات المشروع الأنيقة) -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; background: #fdfbf7; border: 1px solid #e2d9c5; padding: 15px; border-radius: 8px; margin-bottom: 25px; font-size: 12px;">
+                <div><strong style="color: #4a5568;">Client:</strong> <span style="color: #1a202c; font-weight: 600;">${proj.client || '—'}</span></div>
+                <div><strong style="color: #4a5568;">Venue:</strong> <span style="color: #1a202c; font-weight: 600;">${proj.venue || '—'}</span></div>
+                <div><strong style="color: #4a5568;">Event Date:</strong> <span style="color: #1a202c; font-weight: 600;">${proj.eventDate} (${proj.eventTime || '—'})</span></div>
+                <div><strong style="color: #4a5568;">Setup Date:</strong> <span style="color: #1a202c; font-weight: 600;">${proj.setupDate || '—'}</span></div>
+                <div><strong style="color: #4a5568;">Total Types:</strong> <span style="color: #1a202c; font-weight: 600;">${version.equipment.length}</span></div>
+                <div><strong style="color: #4a5568;">Total Quantity:</strong> <span style="color: #1a202c; font-weight: 600;">${totalReq}</span></div>
+            </div>
+
+            <!-- Equipment Table (جدول المعدات الاحترافي) -->
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 25px;">
+                <thead>
+                    <tr style="background: #1a202c; color: #ffffff; text-align: ${isRtl ? 'right' : 'left'};">
+                        <th style="padding: 12px 10px; text-align: center; border-top-right-radius: 6px; border-bottom-right-radius: ${isRtl ? '6px' : '0'}; border-top-left-radius: ${isRtl ? '0' : '6px'};">#</th>
+                        <th style="padding: 12px 10px;">Equipment</th>
+                        <th style="padding: 12px 10px;">Brand</th>
+                        <th style="padding: 12px 10px;">Model</th>
+                        <th style="padding: 12px 10px;">Type</th>
+                        <th style="padding: 12px 10px; text-align: center;">Required</th>
+                        <th style="padding: 12px 10px; text-align: center;">Warehouse</th>
+                        <th style="padding: 12px 10px; text-align: center;">Shortage</th>
+                        <th style="padding: 12px 10px; border-top-left-radius: 6px; border-bottom-left-radius: ${isRtl ? '0' : '6px'}; border-top-right-radius: ${isRtl ? '6px' : '0'};">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHTML}
+                </tbody>
+            </table>
+
+            <!-- Notes Section (قسم الملاحظات إن وُجد) -->
+            ${version.notes || proj.notes ? `
+                <div style="margin-bottom: 25px; padding: 12px 15px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 11px; border-left: 4px solid #c5a059;">
+                    <strong style="color: #1a202c;">Notes:</strong> <span style="color: #4a5568;">${version.notes || proj.notes}</span>
+                </div>
+            ` : ''}
+
+            <!-- Footer (تذييل الصفحة ومنطقة التوقيعات أو الاعتماد) -->
+            <div style="margin-top: 40px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #a0aec0; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+                <span>StageLight Pro Enterprise System</span>
+                <span>Generated automatically via system</span>
+            </div>
         </div>
     `;
 
-    exportHighQualityPDF(reportHtml, 'Internal_Report.pdf', isRtl ? 'rtl' : 'ltr')
-        .finally(() => {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        });
+    window.print();
 }
-
-// --- STORES SECTION MANAGEMENT ---
-function renderStoresGrid() {
-    const grid = document.getElementById('storesGridContainer');
-    if (!grid) return;
-    let html = '';
-    appData.stores.forEach(s => {
-        html += `
-            <div class="store-card">
-                <img src="${s.logo}" class="store-logo-img" alt="${s.name}">
-                <h4>${s.name}</h4>
-                <div class="mt-2">
-                    <button class="btn-sm btn-emerald" onclick="openStoreModal('${s.id}')"><i class="fa-solid fa-pen"></i> تعديل</button>
-                    <button class="btn-sm btn-secondary text-danger" onclick="deleteStore('${s.id}')"><i class="fa-solid fa-trash"></i></button>
-                </div>
-            </div>
-        `;
-    });
-    grid.innerHTML = html;
-}
-
-function openStoreModal(id = '') {
-    document.getElementById('storeModalId').value = id;
-    if (id) {
-        const s = appData.stores.find(item => item.id === id);
-        if (s) {
-            document.getElementById('modalStoreNameInput').value = s.name;
-            document.getElementById('storeModalTitle').textContent = 'تعديل موقع الشراء';
-        }
-    } else {
-        document.getElementById('storeForm').reset();
-        document.getElementById('storeModalTitle').textContent = 'إضافة موقع شراء جديد';
-    }
-    document.getElementById('storeModal').classList.remove('d-none');
-}
-
-function closeStoreModal() {
-    document.getElementById('storeModal').classList.add('d-none');
-}
-
-function handleStoreSubmit(e) {
-    e.preventDefault();
-    const id = document.getElementById('storeModalId').value;
-    const name = document.getElementById('modalStoreNameInput').value;
-    const fileInput = document.getElementById('modalStoreLogoFile');
-
-    const saveStoreData = (logoUrl) => {
-        if (id) {
-            const s = appData.stores.find(item => item.id === id);
-            if (s) {
-                s.name = name;
-                if (logoUrl) s.logo = logoUrl;
-            }
-        } else {
-            const newId = 'store_' + Math.random().toString(36).substring(2, 7);
-            appData.stores.push({
-                id: newId,
-                name: name,
-                logo: logoUrl || 'https://images.unsplash.com/photo-1556742049-0a67d553c253?w=100'
-            });
-        }
-        saveToLocalStorage();
-        closeStoreModal();
-        refreshAllViews();
-    };
-
-    if (fileInput.files && fileInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            saveStoreData(e.target.result);
-        };
-        reader.readAsDataURL(fileInput.files[0]);
-    } else {
-        saveStoreData(null);
-    }
-}
-
-function deleteStore(id) {
-    if (confirm('هل أنت متأكد من حذف هذا الموقع؟')) {
-        appData.stores = appData.stores.filter(s => s.id !== id);
-        saveToLocalStorage();
-        refreshAllViews();
-    }
-}
-
-// --- SETTINGS & BACKUP ---
-function saveSettings() {
-    appData.settings.companyName = document.getElementById('setCompanyName').value;
-    appData.settings.phone = document.getElementById('setCompanyPhone').value;
-    appData.settings.whatsapp = document.getElementById('setCompanyWhatsapp').value;
-    appData.settings.email = document.getElementById('setCompanyEmail').value;
-    appData.settings.address = document.getElementById('setCompanyAddress').value;
-    appData.settings.footerMessage = document.getElementById('setCompanyFooter').value;
-    appData.settings.defaultLang = document.getElementById('setDefaultLang').value;
-    appData.settings.reportingCurr = document.getElementById('setReportingCurr').value;
-
-    const logoFile = document.getElementById('setCompanyLogoFile');
-    if (logoFile.files && logoFile.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            appData.settings.logo = e.target.result;
-            finishSavingSettings();
-        };
-        reader.readAsDataURL(logoFile.files[0]);
-    } else {
-        finishSavingSettings();
-    }
-}
-
-function finishSavingSettings() {
-    saveToLocalStorage();
-    renderCompanyBranding();
-    applyLanguage(appData.settings.defaultLang);
-    alert('تم حفظ الإعدادات بنجاح!');
-}
-
+/* ==========================================
+   5. BACKUP & RESTORE
+   ========================================== */
 function exportBackup() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+    const backupData = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        warehouse: state.warehouse,
+        projects: state.projects,
+        language: state.language
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
     const dlAnchor = document.createElement('a');
     dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download", `OrderTime_Backup_${new Date().toISOString().split('T')[0]}.json`);
+    dlAnchor.setAttribute("download", `StageLightPro_Backup_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(dlAnchor);
     dlAnchor.click();
     dlAnchor.remove();
 }
 
-function importBackup(e) {
-    const file = e.target.files[0];
+function importBackup(event) {
+    const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function (evt) {
+    reader.onload = function(e) {
         try {
-            const parsed = JSON.parse(evt.target.result);
-            if (parsed && parsed.orders && parsed.stores) {
-                appData = parsed;
-                saveToLocalStorage();
-                refreshAllViews();
-                renderCompanyBranding();
-                applyLanguage(appData.settings.defaultLang);
-                alert('تم استعادة النسخة الاحتياطية بنجاح!');
+            const parsed = JSON.parse(e.target.result);
+            if (parsed.warehouse && parsed.projects) {
+                state.warehouse = parsed.warehouse;
+                state.projects = parsed.projects;
+                if (parsed.language) state.language = parsed.language;
+                persistData();
+                applyLanguage();
+                renderProjects();
+                renderWarehouse();
+                alert('تم استعادة البيانات بنجاح!');
             } else {
                 alert('ملف النسخة الاحتياطية غير صالح.');
             }
         } catch (err) {
-            alert('حدث خطأ أثناء قراءة الملف.');
+            alert('حدث خطأ أثناء قراءة ملف النسخة الاحتياطية.');
         }
     };
     reader.readAsText(file);
 }
-
-// Run initialization on DOM load
-document.addEventListener('DOMContentLoaded', initApp);
