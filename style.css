@@ -72,3 +72,13 @@
         margin: 10mm;
     }
 }
+@media print {
+  @page {
+    margin: 10mm;
+    size: auto;
+  }
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
