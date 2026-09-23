@@ -1054,3 +1054,17 @@ body {
         flex: 1;
     }
 }
+@media print {
+    @page {
+        size: auto;
+        /* تقليص هوامش الصفحة إلى الصفر أو أقل حد ممكن لإبعاد الرابط عن محتوى الفاتورة/التقرير */
+        margin: 5mm 5mm 5mm 5mm; 
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
