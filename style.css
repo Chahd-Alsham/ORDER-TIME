@@ -1068,3 +1068,7 @@ body {
         padding: 0 !important;
     }
 }
+tr, .pdf-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
