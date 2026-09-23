@@ -1072,100 +1072,106 @@ function generatePrintPreviewContent() {
     `;
 }
 
-function exportProjectPDF() {
+async function exportProjectPDF() {
     const proj = appData.projects.find(p => p.id === currentProjectId);
     if (!proj) return;
     const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId) || proj.versions[0];
 
+    // توليد محتوى المعاينة
     generatePrintPreviewContent();
     const element = document.getElementById("a4-document");
+    if (!element) return;
 
+    // اسم الملف المطلوب حسب البيانات الفعلية
     const cleanProjectName = proj.name.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, "_");
     const filename = `${cleanProjectName}_${currentVer.versionName}_${new Date().toISOString().split("T")[0]}.pdf`;
 
-    const opt = {
-        margin:      0,
-        filename:    filename,
-        image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 8, useCORS: true, letterRendering: true },
-        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    // دالة دقيقة لاكتشاف الأجهزة والبيئات (بما فيها iPad الحديث الذي يظهر كـ Mac)
-    const ua = navigator.userAgent || navigator.vendor || window.opera;
-    const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isAndroid = /android/i.test(ua);
-    const isMobile = isIOS || isAndroid;
-
-    // مسار الكمبيوتر والأنظمة الداعمة للتنزيل المباشر
-    if (!isMobile) {
-        html2pdf().from(element).set(opt).save().then(() => {
-            if (typeof showToast === 'function') showToast("PDF exported successfully");
-        }).catch(err => {
-            console.error("PDF Export Error:", err);
-            if (typeof showToast === 'function') showToast("Error exporting PDF", "error");
-        });
-        return;
-    }
-
-    // مسار الهواتف (iPhone / iPad / Android) لتوليد ملف PDF حقيقي كـ Blob
-    html2pdf().from(element).set(opt).outputPdf('blob').then(pdfBlob => {
-        if (!pdfBlob || pdfBlob.size === 0) {
-            throw new Error("Generated PDF blob is empty.");
+    try {
+        // 1. انتظار تحميل الخطوط والصور لضمان عدم اختفاء النصوص أو الصور
+        if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
         }
-
-        const pdfFile = new File([pdfBlob], filename, { type: "application/pdf" });
-
-        // التحقق الفعلي من دعم المشاركة للملفات على iOS / الأجهزة الذكية
-        const canShareFiles = navigator.canShare && navigator.canShare({ files: [pdfFile] });
-
-        if (isIOS && canShareFiles) {
-            navigator.share({
-                files: [pdfFile],
-                title: filename,
-                text: proj.name
-            }).then(() => {
-                if (typeof showToast === 'function') showToast("PDF shared successfully");
-            }).catch(shareErr => {
-                // إذا ألغى المستخدم المشاركة، لا نعتبرها خطأً حقيقياً
-                if (shareErr.name !== 'AbortError') {
-                    console.warn("Share API error, falling back:", shareErr);
-                    openPdfFallback(pdfBlob, filename);
-                }
+        const images = element.querySelectorAll('img');
+        await Promise.all([...images].map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
             });
+        }));
+
+        // 2. حساب الأبعاد الفعلية للمحتوى بدقة لتجنب مشاكل iOS Safari
+        const rect = element.getBoundingClientRect();
+        const contentWidth = Math.max(element.scrollWidth, element.offsetWidth, rect.width, 794); // عرض A4 القياسي بالبكسل تقريباً عند 96 DPI هو 794px
+        
+        // ضبط scale متوازن وآمن للذاكرة على iPhone وفي نفس الوقت بجودة عالية
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const safeScale = isIOS ? 2 : 3;
+
+        // تحديد اتجاه الصفحة بناءً على التصميم الحالي
+        const isLandscape = element.classList.contains('landscape') || element.offsetWidth > element.offsetHeight;
+        const orientation = isLandscape ? 'landscape' : 'portrait';
+
+        const opt = {
+            margin:       0,
+            filename:     filename,
+            image:        { type: 'jpeg', quality: 0.95 },
+            html2canvas:  { 
+                scale: safeScale, 
+                useCORS: true, 
+                letterRendering: true,
+                windowWidth: contentWidth
+            },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: orientation }
+        };
+
+        // 3. التصدير الحقيقي باستخدام html2pdf مع معالجة خاصة للـ Blob والـ Share على iPhone
+        const worker = html2pdf().from(element).set(opt);
+        
+        if (isIOS) {
+            // توليد PDF كـ Blob للتعامل الآمن مع Safari وبدون صفحة بيضاء
+            const pdfBlob = await worker.outputPdf('blob');
+            const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: filename,
+                        text: 'Project PDF Export'
+                    });
+                    showToast("PDF exported successfully");
+                    return;
+                } catch (shareErr) {
+                    if (shareErr.name !== 'AbortError') {
+                        console.warn("Share API failed, falling back to download:", shareErr);
+                    } else {
+                        return; // المستخدم ألغى المشاركة
+                    }
+                }
+            }
+            
+            // Fallback آمن لـ Safari في حال لم تكن مشاركة الملفات مدعومة مباشرة
+            const blobUrl = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+            showToast("PDF exported successfully");
+
         } else {
-            // مسار Fallback آمن للـ iPhone والأنظمة الأخرى التي لا تدعم مشاركة الملفات مباشرة
-            openPdfFallback(pdfBlob, filename);
+            // المسار الافتراضي والسريع للكمبيوتر والأندرويد
+            await worker.save();
+            showToast("PDF exported successfully");
         }
 
-    }).catch(err => {
-        console.error("PDF Mobile Export Error:", err);
-        if (typeof showToast === 'function') {
-            showToast("تعذر إنشاء ملف PDF. حاول مرة أخرى.", "error");
-        } else {
-            alert("تعذر إنشاء ملف PDF. حاول مرة أخرى.");
-        }
-    });
-}
-
-// دالة مساعدة لتوفير عرض وتنزيل آمن وحقيقي لملف الـ PDF على Safari iOS والأجهزة المحمولة
-function openPdfFallback(pdfBlob, filename) {
-    const blobUrl = URL.createObjectURL(pdfBlob);
-    
-    // محاولة فتح الملف في نافذة/تبويب جديد ليتمكن المستخدم من عرضه وحفظه بضغطة واحدة من زر المشاركة في Safari
-    const newWindow = window.open(blobUrl, '_blank');
-    
-    if (!newWindow) {
-        // إذا قام المتصفح بحظر النوافذ المنبثقة، نقوم بإنشاء رابط تنزيل مباشر مؤقت
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    } catch (err) {
+        console.error("PDF Export Error:", err);
+        showToast("Error exporting PDF", "error");
     }
-    
-    if (typeof showToast === 'function') showToast("PDF ready. Use Safari share to save.");
 }
 /* ==========================================
    Confirm Dialog Utility
