@@ -1077,17 +1077,17 @@ async function exportProjectPDF() {
     if (!proj) return;
     const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId) || proj.versions[0];
 
-    // 1. توليد محتوى المعاينة وتحديث الـ DOM
+    // 1. تحديث محتوى المعاينة وتوليد العناصر في الـ DOM
     generatePrintPreviewContent();
-    const container = document.getElementById("a4-document");
-    if (!container) return;
+    const element = document.getElementById("a4-document");
+    if (!element) return;
 
-    // 2. الانتظار حتى يتم تحميل الخطوط والصور بالكامل لمنع أي تداخل أو اختلاف في الارتفاع
+    // 2. الانتظار حتى يتم تحميل الخطوط والصور بالكامل لضمان دقة القياسات
     if (document.fonts && document.fonts.ready) {
         await document.fonts.ready;
     }
     
-    const images = container.querySelectorAll('img');
+    const images = element.querySelectorAll('img');
     await Promise.all(Array.from(images).map(img => {
         if (img.complete) return Promise.resolve();
         return new Promise(resolve => {
@@ -1096,39 +1096,26 @@ async function exportProjectPDF() {
         });
     }));
 
-    // اسم الملف المطلوب
     const cleanProjectName = proj.name.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, "_");
     const filename = `${cleanProjectName}_${currentVer.versionName}_${new Date().toISOString().split("T")[0]}.pdf`;
 
+    // 3. ضبط الخيارات بدقة لمنع الفطش، القص، والصفحات البيضاء
+    const opt = {
+        margin:       0,          // جعل الهوامش صفر هنا يمنع تماماً تشوه أو فطش المحتوى
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+            scale: 2,             // دقة عالية وواضحة وآمنة للكمبيوتر والهاتف
+            useCORS: true, 
+            letterRendering: true,
+            scrollY: 0
+        },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', '.no-break', 'card', 'item-row'] } // منع تقطيع الصفوف أو العناصر منتصف الصفحة
+    };
+
     try {
-        // إعدادات مكتبة jsPDF و html2canvas المناسبة لتفادي المشاكل على آيفون والكمبيوتر
-        // باستخدام وضع تقسيم آمن أو تحويل العناصر المتقطعة صفحة بصفحة
-        const { jsPDF } = window.jspdf || {};
-        
-        // إذا كنت تستخدم html2pdf المتكاملة، سنقوم بمعالجة الحاويات أو استخدام خيارات الطابعة الآمنة
-        const opt = {
-            margin:      0,
-            filename:    filename,
-            image:       { type: 'jpeg', quality: 0.95 },
-            html2canvas: { 
-                scale: window.innerWidth < 768 ? 2 : 3, // مقياس آمن لـ iPhone لعدم استهلاك الذاكرة
-                useCORS: true, 
-                letterRendering: true,
-                scrollY: 0
-            },
-            jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
-        };
-
-        // فحص الارتفاع الكلي للمحتوى لتحديد ما إذا كان يتطلب تقسيمًا ذكيًا
-        // سنعتمد على مكتبة html2pdf مع ضبط الخصائص لتجنب الصفحات البيضاء القصوى،
-        // أو تقسيم العناصر التي تحمل فئة page-break إذا وجدت، أو التعامل مع الـ scrollHeight الفعلي.
-        
-        const totalHeight = container.scrollHeight;
-        const A4_HEIGHT_PX = 1123; // تقريبي لارتفاع A4 بـ 96 DPI، أو يتم حسابه ديناميكياً
-
-        // تنفيذ التصدير بطريقة آمنة تمنع الـ Canvas العملاق المؤدي لصفحات بيضاء
-        await html2pdf().from(container).set(opt).save();
-
+        await html2pdf().from(element).set(opt).save();
         showToast("PDF exported successfully");
     } catch (err) {
         console.error("PDF Export Error:", err);
