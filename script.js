@@ -1106,7 +1106,7 @@ async function exportProjectPDF() {
         
         // ضبط scale متوازن وآمن للذاكرة على iPhone وفي نفس الوقت بجودة عالية
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        const safeScale = isIOS ? 2 : 3;
+        const safeScale = isIOS ? 4 : 5;
 
         // تحديد اتجاه الصفحة بناءً على التصميم الحالي
         const isLandscape = element.classList.contains('landscape') || element.offsetWidth > element.offsetHeight;
