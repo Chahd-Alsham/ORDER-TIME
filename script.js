@@ -913,6 +913,165 @@ function fillCompanySettingsForm() {
     renderLogoPreview();
 }
 
+function renderLogoPreview() {
+    const box = document.getElementById("logo-preview-box");
+    if (appData.companySettings.logo) {
+        box.innerHTML = `<img src="${appData.companySettings.logo}" alt="Company Logo">`;
+    } else {
+        box.innerHTML = `<i class="fa-solid fa-image placeholder-icon"></i><span style="font-size:0.8rem; color:var(--text-secondary);">No Logo</span>`;
+    }
+}
+
+/* ==========================================
+    Print Preview & PDF Export (Professional Cinematic Lighting Report)
+    ========================================== */
+function generatePrintPreviewContent() {
+    const proj = appData.projects.find(p => p.id === currentProjectId);
+    if (!proj) return;
+    const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId) || proj.versions[0];
+
+    const docEl = document.getElementById("a4-document");
+    if (!docEl) return;
+
+    // إعداد حاوية الـ A4 بخلفية بيضاء صلبة وخطوط إنجليزية عريضة وأنيقة
+    docEl.style.cssText = `
+        all: initial !important;
+        display: block !important;
+        box-sizing: border-box !important;
+        font-family: 'Montserrat', 'Inter', 'Segoe UI', sans-serif !important;
+        direction: ltr !important;
+        text-align: left !important;
+        width: 210mm !important;
+        min-height: 297mm !important;
+        background-color: #ffffff !important;
+        color: #1a202c !important;
+        position: relative !important;
+        padding: 12mm 15mm !important;
+        margin: 0 auto !important;
+    `;
+
+    // تجهيز اللوجو بحجم أكبر ومظهر بارز
+    const logoSrc = appData.companySettings.logo || '';
+    const logoHtml = logoSrc ? `<img src="${logoSrc}" alt="Logo" style="max-height: 65px; max-width: 180px; object-fit: contain;">` : '';
+
+    // تجهيز صفوف المعدات (بدون عمود المتوفر Available)
+    let equipmentRowsHtml = '';
+    if (!currentVer.equipment || currentVer.equipment.length === 0) {
+        equipmentRowsHtml = `<tr><td colspan="6" style="text-align: center; padding: 25px; color: #718096; font-family: 'Montserrat', sans-serif; font-weight: 500;">No equipment registered in this version.</td></tr>`;
+    } else {
+        currentVer.equipment.forEach((item) => {
+            const whItem = appData.warehouseEquipment.find(w => w.id === item.eqId);
+            const name = whItem ? whItem.name : "Unknown Fixture";
+            const brand = whItem ? whItem.brand : "-";
+            const model = whItem ? whItem.model : "-";
+            const type = whItem ? whItem.type : "-";
+            const required = item.required;
+
+            equipmentRowsHtml += `
+                <tr style="border-bottom: 1px solid #e2e8f0 !important;">
+                    <td style="padding: 12px 10px !important; font-weight: 700 !important; color: #2d3748 !important; text-align: left !important; font-size: 11px !important;">${name}</td>
+                    <td style="padding: 12px 10px !important; color: #4a5568 !important; text-align: left !important; font-size: 10.5px !important;">${brand}</td>
+                    <td style="padding: 12px 10px !important; color: #4a5568 !important; text-align: left !important; font-size: 10.5px !important;">${model}</td>
+                    <td style="padding: 12px 10px !important; color: #4a5568 !important; text-align: left !important; font-size: 10.5px !important;">${type}</td>
+                    <td style="padding: 12px 10px !important; text-align: center !important; font-weight: 800 !important; color: #1a202c !important; font-size: 12px !important;">${required}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // بناء الهيكل باللغة الإنجليزية بالكامل
+    docEl.innerHTML = `
+        <div style="position: relative !important; z-index: 2 !important; width: 100% !important;">
+            
+            <!-- HEADER / COVER SECTION -->
+            <div style="border-bottom: 2.5px solid #cbd5e0 !important; padding-bottom: 15px !important; margin-bottom: 18px !important; display: flex !important; justify-content: space-between !important; align-items: center !important;">
+                <div>
+                    <div style="font-size: 14px !important; letter-spacing: 4px !important; color: #3182ce !important; font-weight: 800 !important; text-transform: uppercase !important; margin-bottom: 6px !important;">PROFESSIONAL LIGHTING DESIGN REPORT</div>
+                    <h1 style="font-size: 22px !important; font-weight: 900 !important; color: #1a202c !important; margin: 0 !important; line-height: 1.2 !important; letter-spacing: -0.5px !important;">${proj.name}</h1>
+                </div>
+                <div style="text-align: right !important;">
+                    ${logoHtml}
+                    <div style="font-size: 9.5px !important; color: #4a5568 !important; font-weight: 700 !important; margin-top: 4px !important;">${appData.companySettings.name || ''}</div>
+                </div>
+            </div>
+
+            <!-- PROJECT METADATA CARDS -->
+            <div style="display: flex !important; gap: 10px !important; margin-bottom: 12px !important;">
+                <div style="flex: 1 !important; background: #f7fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; padding: 9px 12px !important; border-left: 4px solid #3182ce !important; text-align: left !important;">
+                    <div style="font-size: 8.5px !important; color: #718096 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; letter-spacing: 0.5px !important;">Client</div>
+                    <div style="font-size: 12.5px !important; font-weight: 800 !important; color: #080f0a !important;">${proj.client || "-"}</div>
+                </div>
+                <div style="flex: 1 !important; background: #f7fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; padding: 9px 12px !important; border-left: 4px solid #805ad5 !important; text-align: left !important;">
+                    <div style="font-size: 8.5px !important; color: #718096 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; letter-spacing: 0.5px !important;">Venue</div>
+                    <div style="font-size: 12.5px !important; font-weight: 800 !important; color: #1a202c !important;">${proj.venue || "-"}</div>
+                </div>
+                <div style="flex: 1 !important; background: #f7fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; padding: 9px 12px !important; border-left: 4px solid #3182ce !important; text-align: left !important;">
+                    <div style="font-size: 8.5px !important; color: #718096 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; letter-spacing: 0.5px !important;">Date</div>
+                    <div style="font-size: 12.5px !important; font-weight: 800 !important; color: #1a202c !important;">${proj.date || "-"}</div>
+                </div>
+            </div>
+
+            <!-- SECONDARY METADATA GRID -->
+            <div style="display: flex !important; gap: 8px !important; margin-bottom: 18px !important;">
+                <div style="flex: 1 !important; background: #f7fafc !important; padding: 7px 10px !important; border-radius: 5px !important; border: 1px solid #e2e8f0 !important; text-align: left !important;">
+                    <span style="color: #718096 !important; display: block !important; font-size: 8.5px !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 2px !important;">Version:</span>
+                    <strong style="color: #3182ce !important; font-size: 10.5px !important; font-weight: 800 !important;">${currentVer.versionName} (v${currentVer.versionNumber})</strong>
+                </div>
+                <div style="flex: 1 !important; background: #f7fafc !important; padding: 7px 10px !important; border-radius: 5px !important; border: 1px solid #e2e8f0 !important; text-align: left !important;">
+                    <span style="color: #718096 !important; display: block !important; font-size: 8.5px !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 2px !important;">Show Time:</span>
+                    <strong style="color: #1a202c !important; font-size: 10.5px !important; font-weight: 800 !important;">${proj.time || "-"}</strong>
+                </div>
+                <div style="flex: 1 !important; background: #f7fafc !important; padding: 7px 10px !important; border-radius: 5px !important; border: 1px solid #e2e8f0 !important; text-align: left !important;">
+                    <span style="color: #718096 !important; display: block !important; font-size: 8.5px !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 2px !important;">Setup Date:</span>
+                    <strong style="color: #1a202c !important; font-size: 10.5px !important; font-weight: 800 !important;">${proj.setupDate || "-"}</strong>
+                </div>
+                <div style="flex: 1 !important; background: #f7fafc !important; padding: 7px 10px !important; border-radius: 5px !important; border: 1px solid #e2e8f0 !important; text-align: left !important;">
+                    <span style="color: #718096 !important; display: block !important; font-size: 8.5px !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 2px !important;">Lighting Engineer:</span>
+                    <strong style="color: #1a202c !important; font-size: 10.5px !important; font-weight: 800 !important;">${appData.engineerSettings.name || ''}</strong>
+                </div>
+            </div>
+
+            <!-- NOTES SECTION (IF EXISTS) -->
+            ${proj.notes ? `
+            <div style="background: #ebf8ff !important; border: 1px solid #bee3f8 !important; border-radius: 6px !important; padding: 10px 12px !important; margin-bottom: 18px !important; text-align: left !important;">
+                <div style="font-size: 9.5px !important; color: #2b6cb0 !important; font-weight: 800 !important; margin-bottom: 3px !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;">Project Notes</div>
+                <div style="font-size: 10.5px !important; color: #2d3748 !important; line-height: 1.5 !important; font-weight: 500 !important;">${proj.notes}</div>
+            </div>
+            ` : ''}
+
+            <!-- TECHNICAL EQUIPMENT SPECIFICATION SECTION -->
+            <div style="margin-bottom: 25px !important;">
+                <div style="display: flex !important; align-items: center !important; justify-content: space-between !important; margin-bottom: 10px !important; border-bottom: 1.5px solid #cbd5e0 !important; padding-bottom: 6px !important;">
+                    <h3 style="font-size: 12px !important; font-weight: 800 !important; color: #2b6cb0 !important; margin: 0 !important; letter-spacing: 1.2px !important; text-transform: uppercase !important;">03 // TECHNICAL EQUIPMENT SPECIFICATION</h3>
+                    <span style="font-size: 9.5px !important; color: #718096 !important; font-weight: 700 !important;">Approved Version Manifest</span>
+                </div>
+
+                <table style="width: 100% !important; border-collapse: collapse !important; font-size: 10.5px !important;">
+                    <thead>
+                        <tr style="background: #edf2f7 !important; color: #2b6cb0 !important; border-bottom: 2.5px solid #cbd5e0 !important;">
+                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Fixture</th>
+                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Brand</th>
+                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Model</th>
+                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Type</th>
+                            <th style="padding: 9px 10px !important; text-align: center !important; font-weight: 800 !important; letter-spacing: 0.5px !important;">Required Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${equipmentRowsHtml}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div style="position: relative !important; z-index: 2 !important; width: 100% !important; margin-top: 35px !important; display: flex !important; justify-content: space-between !important; align-items: center !important; font-size: 9.5px !important; color: #718096 !important; font-weight: 700 !important; border-top: 1px solid #e2e8f0 !important; padding-top: 10px !important;">
+            <div>${appData.companySettings.name} &bull; ${appData.engineerSettings.name}</div>
+            <div>Lighting Design Report &bull; Generated: ${new Date().toISOString().split("T")[0]}</div>
+        </div>
+    `;
+}
+
 function exportProjectPDF() {
     const proj = appData.projects.find(p => p.id === currentProjectId);
     if (!proj) return;
@@ -928,48 +1087,85 @@ function exportProjectPDF() {
         margin:      0,
         filename:    filename,
         image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 794 },
+        html2canvas:  { scale: 8, useCORS: true, letterRendering: true },
         jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // توليد ملف PDF كـ Blob حقيقي دون الاعتماد على Print Preview
-    html2pdf().from(element).set(opt).outputPdf('blob').then((pdfBlob) => {
-        const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
+    // دالة دقيقة لاكتشاف الأجهزة والبيئات (بما فيها iPad الحديث الذي يظهر كـ Mac)
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /android/i.test(ua);
+    const isMobile = isIOS || isAndroid;
 
-        // استخدام Web Share API إذا كانت مدعومة (تعمل بسلاسة على iPhone / Safari للمشاركة وحفظه في الملفات)
-        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+    // مسار الكمبيوتر والأنظمة الداعمة للتنزيل المباشر
+    if (!isMobile) {
+        html2pdf().from(element).set(opt).save().then(() => {
+            if (typeof showToast === 'function') showToast("PDF exported successfully");
+        }).catch(err => {
+            console.error("PDF Export Error:", err);
+            if (typeof showToast === 'function') showToast("Error exporting PDF", "error");
+        });
+        return;
+    }
+
+    // مسار الهواتف (iPhone / iPad / Android) لتوليد ملف PDF حقيقي كـ Blob
+    html2pdf().from(element).set(opt).outputPdf('blob').then(pdfBlob => {
+        if (!pdfBlob || pdfBlob.size === 0) {
+            throw new Error("Generated PDF blob is empty.");
+        }
+
+        const pdfFile = new File([pdfBlob], filename, { type: "application/pdf" });
+
+        // التحقق الفعلي من دعم المشاركة للملفات على iOS / الأجهزة الذكية
+        const canShareFiles = navigator.canShare && navigator.canShare({ files: [pdfFile] });
+
+        if (isIOS && canShareFiles) {
             navigator.share({
                 files: [pdfFile],
                 title: filename,
-                text: 'Professional Lighting Design Report'
+                text: proj.name
             }).then(() => {
-                showToast("PDF shared successfully");
-            }).catch((error) => {
-                if (error.name !== 'AbortError') {
-                    console.error("Share Error:", error);
-                    fallbackDownload(pdfBlob, filename);
+                if (typeof showToast === 'function') showToast("PDF shared successfully");
+            }).catch(shareErr => {
+                // إذا ألغى المستخدم المشاركة، لا نعتبرها خطأً حقيقياً
+                if (shareErr.name !== 'AbortError') {
+                    console.warn("Share API error, falling back:", shareErr);
+                    openPdfFallback(pdfBlob, filename);
                 }
             });
         } else {
-            // طريقة بديلة (Fallback) للتنزيل المباشر على الأجهزة الأخرى
-            fallbackDownload(pdfBlob, filename);
+            // مسار Fallback آمن للـ iPhone والأنظمة الأخرى التي لا تدعم مشاركة الملفات مباشرة
+            openPdfFallback(pdfBlob, filename);
         }
+
     }).catch(err => {
-        console.error("PDF Export Error:", err);
-        showToast("Error exporting PDF", "error");
+        console.error("PDF Mobile Export Error:", err);
+        if (typeof showToast === 'function') {
+            showToast("تعذر إنشاء ملف PDF. حاول مرة أخرى.", "error");
+        } else {
+            alert("تعذر إنشاء ملف PDF. حاول مرة أخرى.");
+        }
     });
 }
 
-function fallbackDownload(blob, filename) {
-    const blobUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    showToast("PDF exported successfully");
+// دالة مساعدة لتوفير عرض وتنزيل آمن وحقيقي لملف الـ PDF على Safari iOS والأجهزة المحمولة
+function openPdfFallback(pdfBlob, filename) {
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    
+    // محاولة فتح الملف في نافذة/تبويب جديد ليتمكن المستخدم من عرضه وحفظه بضغطة واحدة من زر المشاركة في Safari
+    const newWindow = window.open(blobUrl, '_blank');
+    
+    if (!newWindow) {
+        // إذا قام المتصفح بحظر النوافذ المنبثقة، نقوم بإنشاء رابط تنزيل مباشر مؤقت
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    if (typeof showToast === 'function') showToast("PDF ready. Use Safari share to save.");
 }
 /* ==========================================
    Confirm Dialog Utility
