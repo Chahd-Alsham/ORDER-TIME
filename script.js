@@ -1072,76 +1072,31 @@ function generatePrintPreviewContent() {
     `;
 }
 
-async function exportProjectPDF() {
+function exportProjectPDF() {
     const proj = appData.projects.find(p => p.id === currentProjectId);
     if (!proj) return;
     const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId) || proj.versions[0];
 
-    // 1. تحديث محتوى المعاينة وتوليد العناصر في الـ DOM
     generatePrintPreviewContent();
     const element = document.getElementById("a4-document");
-    if (!element) return;
-
-    // حفظ الأنماط الأصلية لاستعادتها لاحقاً
-    const originalWidth = element.style.width;
-    const originalMaxWidth = element.style.maxWidth;
-    const originalBoxSizing = element.style.boxSizing;
-    const originalPadding = element.style.padding;
-
-    // فرض قياسات صارمة وثابتة لمنع خروج أي محتوى عن اليمين أو اليسار على الأيفون
-    element.style.width = "794px";
-    element.style.minWidth = "794px";
-    element.style.maxWidth = "794px";
-    element.style.boxSizing = "border-box";
-    element.style.padding = "20px"; // هوامش داخلية آمنة تمنع الالتصاق بالأطراف
-
-    // 2. الانتظار حتى يتم تحميل الخطوط والصور بالكامل
-    if (document.fonts && document.fonts.ready) {
-        await document.fonts.ready;
-    }
-    
-    const images = element.querySelectorAll('img');
-    await Promise.all(Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise(resolve => {
-            img.onload = resolve;
-            img.onerror = resolve;
-        });
-    }));
 
     const cleanProjectName = proj.name.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, "_");
     const filename = `${cleanProjectName}_${currentVer.versionName}_${new Date().toISOString().split("T")[0]}.pdf`;
 
-    // 3. إعدادات html2pdf المحسنة خصيصاً لمنع القص الأفقي في Safari
     const opt = {
-        margin:       0,          // الهوامش أصبحت داخلية لمنع تباين العرض بين الأجهزة
-        filename:     filename,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { 
-            scale: 2,             // دقة عالية وآمنة للذاكرة
-            useCORS: true, 
-            letterRendering: true,
-            scrollY: 0,
-            windowWidth: 794      // اجبار نافذة العرض على مطابقة عرض A4 تماماً
-        },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', '.no-break', 'card', 'item-row'] }
+        margin:      0,
+        filename:    filename,
+        image:       { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 8, useCORS: true, letterRendering: true },
+        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    try {
-        await html2pdf().from(element).set(opt).save();
+    html2pdf().from(element).set(opt).save().then(() => {
         showToast("PDF exported successfully");
-    } catch (err) {
+    }).catch(err => {
         console.error("PDF Export Error:", err);
         showToast("Error exporting PDF", "error");
-    } finally {
-        // استعادة الأبعاد والأنماط الأصلية للعنصر تماماً بعد التصدير
-        element.style.width = originalWidth;
-        element.style.minWidth = "";
-        element.style.maxWidth = originalMaxWidth;
-        element.style.boxSizing = originalBoxSizing;
-        element.style.padding = originalPadding;
-    }
+    });
 }
 /* ==========================================
    Confirm Dialog Utility
