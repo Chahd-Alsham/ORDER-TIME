@@ -1,1017 +1,1221 @@
-/* ==========================================
-   StageLight Pro - Core JavaScript Engine
-   ================ ========================== */
-
-// State Management & LocalStorage Keys
-const STORAGE_KEY_PROJECTS = 'stagelight_projects_v1';
-const STORAGE_KEY_WAREHOUSE = 'stagelight_warehouse_v1';
-const STORAGE_KEY_LANG = 'stagelight_lang_v1';
-
-let state = {
-    language: localStorage.getItem(STORAGE_KEY_LANG) || 'ar',
-    warehouse: JSON.parse(localStorage.getItem(STORAGE_KEY_WAREHOUSE)) || [
-        { id: 'eq_1', name: 'Shark Beam 450', brand: 'Light Sky', model: '450W', type: 'Beam', qty: 21, notes: 'Main moving heads' },
-        { id: 'eq_2', name: 'Titan Tube', brand: 'Astera', model: 'Titan', type: 'LED Tube', qty: 16, notes: 'Wireless IP65' },
-        { id: 'eq_3', name: 'RGBWAUV PAR', brand: 'Generic', model: 'PAR', type: 'PAR', qty: 33, notes: 'Wash lighting' },
-        { id: 'eq_4', name: 'Blinder', brand: 'Showtec', model: '2-Lite', type: 'Blinder', qty: 8, notes: 'Audience light' },
-        { id: 'eq_5', name: 'DMX Cable 5pin', brand: 'ProCab', model: '10m', type: 'Cable', qty: 50, notes: 'Data links' }
-    ],
-    projects: JSON.parse(localStorage.getItem(STORAGE_KEY_PROJECTS)) || [
-        {
-            id: 'proj_1',
-            name: 'Riyadh Music Festival 2026',
-            client: 'General Entertainment Authority',
-            venue: 'Boulevard World Stage A',
-            eventDate: '2026-11-15',
-            eventTime: '20:00',
-            setupDate: '2026-11-13',
-            notes: 'Main outdoor concert production setup.',
-            currentVersionId: 'v_1_1',
-            versions: [
-                {
-                    id: 'v_1_1',
-                    name: 'Version 1 - Initial Draft',
-                    date: '2026-09-20',
-                    notes: 'Initial preliminary design layout',
-                    equipment: [
-                        { warehouseId: 'eq_1', requiredQty: 18, notes: 'Main Truss' },
-                        { warehouseId: 'eq_2', requiredQty: 12, notes: 'Stage framing' },
-                        { warehouseId: 'eq_3', requiredQty: 24, notes: 'Floor wash' }
-                    ]
-                }
-            ]
-        }
-    ],
-    activeTab: 'projects', // 'projects', 'warehouse', 'project-detail'
-    currentProjectId: null,
-    currentVersionId: null
-};
-
-// Translations Dictionary
-const i18n = {
-    ar: {
-        appTitle: 'StageLight Pro',
-        appSubtitle: 'إدارة مشاريع ومعدات الإضاءة',
-        tabProjects: 'المشاريع',
-        tabWarehouse: 'مستودع المعدات',
-        projectsTitle: 'مشاريع الإضاءة',
-        projectsSubtitle: 'إدارة وتنظيم كافة الفعاليات والعروض الحية',
-        addProjectBtn: 'إضافة مشروع جديد',
-        warehouseTitle: 'مستودع المعدات الرئيسي',
-        warehouseSubtitle: 'إدارة الأجهزة والمعدات المتوفرة لديك فعلياً',
-        addEquipmentBtn: 'إضافة معدة للمستودع',
-        searchProjectsPlaceholder: 'البحث في المشاريع (الاسم، المكان)...',
-        searchWarehousePlaceholder: 'ابحث بالاسم، الموديل، الشركة أو النوع...',
-        allTypes: 'جميع الأنواع',
-        thEquipment: 'المعدة / الجهاز',
-        thBrand: 'الشركة',
-        thModel: 'الموديل',
-        thType: 'النوع',
-        thAvailable: 'متوفر',
-        thNotes: 'ملاحظات',
-        thActions: 'الإجراءات',
-        thRequired: 'المطلوب',
-        thWarehouseAvailable: 'المستودع',
-        thShortage: 'النقص',
-        thStatus: 'الحالة',
-        backToProjects: 'العودة للمشاريع',
-        editProject: 'تعديل المشروع',
-        printSheet: 'طباعة / PDF',
-        duplicateProject: 'نسخ المشروع',
-        lblVenue: 'المكان:',
-        lblEventDate: 'التاريخ:',
-        lblEventTime: 'الوقت:',
-        totalProjectEquip: 'إجمالي معدات المشروع',
-        newVersionBtn: '+ نسخة جديدة (Version)',
-        addEquipToProject: '+ إضافة معدات للنسخة',
-        editVersion: 'تعديل النسخة',
-        deleteVersion: 'حذف النسخة',
-        modalAddProject: 'إضافة مشروع جديد',
-        modalEditProject: 'تعديل المشروع',
-        modalAddEquip: 'إضافة معدة للمستودع',
-        modalEditEquip: 'تعديل المعدة',
-        modalAddProjEquip: 'إضافة معدة للمشروع من المستودع',
-        modalNewVersion: 'إنشاء نسخة جديدة (Version)',
-        modalEditVersion: 'تعديل معلومات النسخة',
-        lblProjectName: 'اسم المشروع *',
-        lblClientName: 'اسم العميل (اختياري)',
-        lblClient: 'العميل',
-        lblSetupDate: 'تاريخ التركيب',
-        lblNotes: 'ملاحظات',
-        lblEquipName: 'اسم الجهاز / المعدة *',
-        lblBrand: 'الشركة المصنعة (Brand)',
-        lblModel: 'الموديل',
-        lblType: 'النوع *',
-        lblQuantity: 'الكمية المتوفرة *',
-        lblSelectEquip: 'اختر المعدة *',
-        lblAvailableInWarehouse: 'الكمية المتوفرة في المستودع:',
-        lblRequiredQty: 'الكمية المطلوبة للمشروع *',
-        lblProjectEquipNotes: 'ملاحظات خاصة بالمشروع (اختياري)',
-        lblVersionName: 'اسم النسخة / الوصف *',
-        btnCancel: 'إلغاء',
-        btnSaveProject: 'حفظ المشروع',
-        btnSaveEquip: 'حفظ المعدة',
-        btnSave: 'حفظ',
-        btnAdd: 'إضافة',
-        btnCreate: 'إنشاء',
-        statusFull: 'متوفر بالكامل',
-        statusPartial: 'متوفر جزئياً',
-        statusNone: 'غير متوفر',
-        confirmDeleteProject: 'هل أنت متأكد من حذف هذا المشروع؟',
-        confirmDeleteEquip: 'هل أنت متأكد من حذف هذه المعدة من المستودع؟',
-        confirmDeleteVersion: 'هل أنت متأكد من حذف هذه النسخة؟',
-        exportBackup: 'تصدير النسخة الاحتياطية',
-        importBackup: 'استعادة نسخة احتياطية'
-    },
-    en: {
-        appTitle: 'StageLight Pro',
-        appSubtitle: 'Event Lighting Management',
-        tabProjects: 'Projects',
-        tabWarehouse: 'Warehouse',
-        projectsTitle: 'Lighting Projects',
-        projectsSubtitle: 'Manage and organize all live shows and events',
-        addProjectBtn: 'Add New Project',
-        warehouseTitle: 'Master Equipment Warehouse',
-        warehouseSubtitle: 'Manage your owned gear and inventory',
-        addEquipmentBtn: 'Add Equipment',
-        searchProjectsPlaceholder: 'Search projects by name, venue...',
-        searchWarehousePlaceholder: 'Search by name, model, brand or type...',
-        allTypes: 'All Types',
-        thEquipment: 'Equipment',
-        thBrand: 'Brand',
-        thModel: 'Model',
-        thType: 'Type',
-        thAvailable: 'Available',
-        thNotes: 'Notes',
-        thActions: 'Actions',
-        thRequired: 'Required',
-        thWarehouseAvailable: 'Warehouse',
-        thShortage: 'Shortage',
-        thStatus: 'Status',
-        backToProjects: 'Back to Projects',
-        editProject: 'Edit Project',
-        printSheet: 'Print / PDF',
-        duplicateProject: 'Duplicate',
-        lblVenue: 'Venue:',
-        lblEventDate: 'Date:',
-        lblEventTime: 'Time:',
-        totalProjectEquip: 'Total Project Equipment',
-        newVersionBtn: '+ New Version',
-        addEquipToProject: '+ Add Equipment to Version',
-        editVersion: 'Edit Version',
-        deleteVersion: 'Delete Version',
-        modalAddProject: 'Add New Project',
-        modalEditProject: 'Edit Project',
-        modalAddEquip: 'Add Equipment to Warehouse',
-        modalEditEquip: 'Edit Equipment',
-        modalAddProjEquip: 'Add Equipment from Warehouse',
-        modalNewVersion: 'Create New Version',
-        modalEditVersion: 'Edit Version Info',
-        lblProjectName: 'Project Name *',
-        lblClientName: 'Client Name (Optional)',
-        lblClient: 'Client',
-        lblSetupDate: 'Setup Date',
-        lblNotes: 'Notes',
-        lblEquipName: 'Equipment Name *',
-        lblBrand: 'Brand',
-        lblModel: 'Model',
-        lblType: 'Type *',
-        lblQuantity: 'Available Quantity *',
-        lblSelectEquip: 'Select Equipment *',
-        lblAvailableInWarehouse: 'Available in Warehouse:',
-        lblRequiredQty: 'Required Quantity *',
-        lblProjectEquipNotes: 'Project-specific Notes (Optional)',
-        lblVersionName: 'Version Name / Description *',
-        btnCancel: 'Cancel',
-        btnSaveProject: 'Save Project',
-        btnSaveEquip: 'Save Equipment',
-        btnSave: 'Save',
-        btnAdd: 'Add',
-        btnCreate: 'Create',
-        statusFull: 'Fully Available',
-        statusPartial: 'Partially Available',
-        statusNone: 'Not Available',
-        confirmDeleteProject: 'Are you sure you want to delete this project?',
-        confirmDeleteEquip: 'Are you sure you want to delete this equipment?',
-        confirmDeleteVersion: 'Are you sure you want to delete this version?',
-        exportBackup: 'Export Backup',
-        importBackup: 'Import Backup'
-    }
-};
-
-// Initialize Application
-document.addEventListener('DOMContentLoaded', () => {
-    applyLanguage();
+document.addEventListener("DOMContentLoaded", () => {
+    localStorage.removeItem("LightingManager_Data"); // أضف هذا السطر مؤقتاً لمسح الذاكرة القديمة
+    loadData();
+    initNavigation();
+    initEventListeners();
     renderProjects();
     renderWarehouse();
-    populateWarehouseTypeFilter();
+    updateSidebarCompanyInfo();
+    fillCompanySettingsForm();
+});
+/* ==========================================
+   Lighting Manager - Professional JavaScript
+   ========================================== */
+
+// Default Data Structure State
+let appData = {
+    projects: [],
+warehouseEquipment: [
+        {
+            id: "EQ_LS_1",
+            name: "Beam F450",
+            brand: "Light Sky",
+            model: "Beam F450",
+            type: "Beam Moving Head",
+            available: 100,
+            notes: "إضاءة بيم قوية واحترافية عالية الأداء"
+        },
+        {
+            id: "EQ_LS_2",
+            name: "Wash 1920 Zoom",
+            brand: "Light Sky",
+            model: "Wash 1920 Zoom",
+            type: "LED Wash Zoom",
+            available: 40,
+            notes: "إضاءة غسيل متحركة مع خاصية الزوم"
+        },
+        {
+            id: "EQ_LS_3",
+            name: "Wash 1940 Zoom",
+            brand: "Light Sky",
+            model: "Wash 1940 Zoom",
+            type: "LED Wash Zoom",
+            available: 30,
+            notes: "إضاءة غسيل متحركة عالية الطاقة مع زوم واسع"
+        },
+        {
+            id: "EQ_LS_4",
+            name: "Aurora Spot",
+            brand: "Light Sky",
+            model: "Aurora Spot",
+            type: "Spot Moving Head",
+            available: 60,
+            notes: "سبوت متحرك مع تأثيرات جوبو وبريزم متقدمة"
+        },
+        {
+            id: "EQ_LS_5",
+            name: "LED Bar",
+            brand: "Light Sky",
+            model: "LED Bar Standard",
+            type: "LED Bar",
+            available: 300,
+            notes: "شريط إضاءة ليد جداري وديكوري"
+        },
+        {
+            id: "EQ_LS_6",
+            name: "LED Bar Battery",
+            brand: "Light Sky",
+            model: "Wireless Battery LED Bar",
+            type: "Battery LED Bar",
+            available: 60,
+            notes: "شريط إضاءة ليد لاسلكي يعمل ببطارية قابلة للشحن"
+        },
+        {
+            id: "EQ_LS_7",
+            name: "City Color",
+            brand: "Light Sky",
+            model: "City Color Architectural",
+            type: "Architectural Light",
+            available: 170,
+            notes: "إضاءة معمارية خارجية غامرة للواجهات والمباني"
+        },
+        {
+            id: "EQ_LS_8",
+            name: "Strobe Pixel",
+            brand: "Light Sky",
+            model: "Pixel Strobe",
+            type: "Strobe / Blinder",
+            available: 37,
+            notes: "ستروب فلاش إلكتروني مع تحكم بالبكسل"
+        },
+        {
+            id: "EQ_LS_9",
+            name: "Blinder RGBW",
+            brand: "Light Sky",
+            model: "RGBW Blinder",
+            type: "Blinder",
+            available: 24,
+            notes: "بلايندر إضاءة المسارح بألوان RGBW المتعددة"
+        },
+        {
+            id: "EQ_LS_10",
+            name: "Kinetic Ball",
+            brand: "Light Sky",
+            model: "Kinetic LED Ball",
+            type: "Kinetic System",
+            available: 200,
+            notes: "كرات حركية متحركة مضيئة بنظام الونش"
+        },
+        {
+            id: "EQ_LS_11",
+            name: "LED Par 1M",
+            brand: "Light Sky",
+            model: "LED Par 1M",
+            type: "LED Par",
+            available: 30,
+            notes: "إضاءة بار ليد مسرحية وتدشينات"
+        },
+        {
+            id: "EQ_LS_12",
+            name: "Eurotruss  1M",
+            brand: "Light Sky",
+            model: "Eurotruss 1M Segment",
+            type: "Rigging / Truss",
+            available: 1000,
+            notes: "هياكل حديدية/ألومنيوم تروس بطول 1 متر"
+        },
+        {
+            id: "EQ_LS_13",
+            name: "Motor Chain",
+            brand: "Light Sky",
+            model: "Electric Chain Hoist",
+            type: "Rigging Motor",
+            available: 100,
+            notes: "موتور زنجير كهربائي لرفع الأحمال والتروس"
+        }
+    ],
+    companySettings: {
+        name: "مؤسسة الإضاءة الاحترافية",
+        nameEn: "Professional Lighting Est",
+        phone: "+966 50 000 0000",
+        email: "info@lighting.com",
+        website: "www.lighting.com",
+        address: "الرياض، المملكة العربية السعودية",
+        logo: ""
+    },
+    engineerSettings: {
+        name: "مهندس الإضاءة",
+        title: "Senior Lighting Designer",
+        phone: "+966 5xxxxxxxx",
+        email: "engineer@lighting.com"
+    },
+    appSettings: {
+        language: "ar"
+    }
+};
+
+// Current Active State
+let currentProjectId = null;
+
+// DOM Loaded Initialization
+document.addEventListener("DOMContentLoaded", () => {
+    loadData();
+    initNavigation();
+    initEventListeners();
+    renderProjects();
+    renderWarehouse();
+    updateSidebarCompanyInfo();
+    fillCompanySettingsForm();
 });
 
-// Save State to LocalStorage
-function persistData() {
-    localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(state.projects));
-    localStorage.setItem(STORAGE_KEY_WAREHOUSE, JSON.stringify(state.warehouse));
-    localStorage.setItem(STORAGE_KEY_LANG, state.language);
-}
-
-// Language Toggle & Application
-function toggleLanguage() {
-    state.language = state.language === 'ar' ? 'en' : 'ar';
-    persistData();
-    applyLanguage();
-}
-
-function applyLanguage() {
-    const root = document.getElementById('htmlRoot');
-    root.setAttribute('lang', state.language);
-    root.setAttribute('dir', state.language === 'ar' ? 'rtl' : 'ltr');
-    document.getElementById('langBtnText').innerText = state.language === 'ar' ? 'EN' : 'عربي';
-
-    // Update all elements with data-i18n
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (i18n[state.language][key]) {
-            el.innerText = i18n[state.language][key];
+/* ==========================================
+   LocalStorage Management
+   ========================================== */
+function loadData() {
+    const saved = localStorage.getItem("LightingManager_Data");
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            appData = { ...appData, ...parsed };
+        } catch (e) {
+            console.error("Error parsing LocalStorage data:", e);
         }
+    }
+}
+
+function saveData() {
+    try {
+        localStorage.setItem("LightingManager_Data", JSON.stringify(appData));
+    } catch (e) {
+        console.error("Error saving to LocalStorage:", e);
+        showToast("خطأ في حفظ البيانات محلياً", "error");
+    }
+}
+
+/* ==========================================
+   Navigation & View Routing
+   ========================================== */
+function initNavigation() {
+    const navItems = document.querySelectorAll(".nav-item");
+    navItems.forEach(item => {
+        item.addEventListener("click", (e) => {
+            e.preventDefault();
+            const targetId = item.getAttribute("data-target");
+            switchView(targetId);
+            
+            navItems.forEach(nav => nav.classList.remove("active"));
+            item.classList.add("active");
+
+            // Close mobile sidebar if open
+            document.getElementById("sidebar").classList.remove("mobile-open");
+        });
     });
 
-    // Update placeholders
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-        const key = el.getAttribute('data-i18n-placeholder');
-        if (i18n[state.language][key]) {
-            el.placeholder = i18n[state.language][key];
-        }
+    // Mobile Sidebar Toggle
+    document.getElementById("sidebar-toggle").addEventListener("click", () => {
+        document.getElementById("sidebar").classList.toggle("mobile-open");
+    });
+    document.getElementById("sidebar-close").addEventListener("click", () => {
+        document.getElementById("sidebar").classList.remove("mobile-open");
     });
 
-    if (state.activeTab === 'projects') renderProjects();
-    if (state.activeTab === 'warehouse') renderWarehouse();
-    if (state.activeTab === 'project-detail') renderProjectDetailView();
-}
-
-// Navigation Tabs Switcher
-function switchTab(tabName) {
-    state.activeTab = tabName;
-    document.getElementById('tab-content-projects').classList.add('hidden');
-    document.getElementById('tab-content-warehouse').classList.add('hidden');
-    document.getElementById('tab-content-project-detail').classList.add('hidden');
-
-    // Desktop nav active styling
-    document.getElementById('nav-projects').className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800";
-    document.getElementById('nav-warehouse').className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800";
-
-    // Mobile nav active styling
-    document.getElementById('mobile-nav-projects').className = "flex-1 py-2 text-center text-xs font-semibold text-slate-400 border-b-2 border-transparent";
-    document.getElementById('mobile-nav-warehouse').className = "flex-1 py-2 text-center text-xs font-semibold text-slate-400 border-b-2 border-transparent";
-
-    if (tabName === 'projects') {
-        document.getElementById('tab-content-projects').classList.remove('hidden');
-        document.getElementById('nav-projects').className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-brand-600 text-white shadow";
-        document.getElementById('mobile-nav-projects').className = "flex-1 py-2 text-center text-xs font-semibold text-brand-400 border-b-2 border-brand-500";
+    // Back to projects
+    document.getElementById("back-to-projects").addEventListener("click", () => {
+        switchView("projects-view");
+        currentProjectId = null;
         renderProjects();
-    } else if (tabName === 'warehouse') {
-        document.getElementById('tab-content-warehouse').classList.remove('hidden');
-        document.getElementById('nav-warehouse').className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-brand-600 text-white shadow";
-        document.getElementById('mobile-nav-warehouse').className = "flex-1 py-2 text-center text-xs font-semibold text-brand-400 border-b-2 border-brand-500";
-        renderWarehouse();
-    } else if (tabName === 'project-detail') {
-        document.getElementById('tab-content-project-detail').classList.remove('hidden');
-        renderProjectDetailView();
-    }
+    });
 }
 
-// Modal Controllers
+function switchView(viewId) {
+    document.querySelectorAll(".view-section").forEach(sec => {
+        sec.classList.remove("active");
+    });
+    document.getElementById(viewId).classList.add("active");
+    window.scrollTo(0, 0);
+}
+
+/* ==========================================
+   Toast Notifications
+   ========================================== */
+function showToast(message, type = "success") {
+    const toast = document.getElementById("toast");
+    const msgEl = document.getElementById("toast-message");
+    const iconEl = document.getElementById("toast-icon");
+
+    msgEl.textContent = message;
+    if (type === "success") {
+        iconEl.className = "fa-solid fa-circle-check";
+        iconEl.style.color = "var(--success-color)";
+    } else {
+        iconEl.className = "fa-solid fa-triangle-exclamation";
+        iconEl.style.color = "var(--danger-color)";
+    }
+
+    toast.classList.add("show");
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 3000);
+}
+
+/* ==========================================
+   Modals Management
+   ========================================== */
 function openModal(modalId) {
-    document.getElementById(modalId).classList.remove('hidden');
-    if (modalId === 'projectModal') {
-        document.getElementById('projectForm').reset();
-        document.getElementById('projectId').value = '';
-        document.getElementById('projectModalTitle').innerText = i18n[state.language].modalAddProject;
-    }
-    if (modalId === 'equipmentModal') {
-        document.getElementById('equipmentForm').reset();
-        document.getElementById('equipId').value = '';
-        document.getElementById('equipmentModalTitle').innerText = i18n[state.language].modalAddEquip;
-    }
-    if (modalId === 'addProjectEquipModal') {
-        document.getElementById('addProjectEquipForm').reset();
-        populateWarehouseSelectForProject();
-    }
+    document.getElementById(modalId).classList.add("active");
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
+    document.getElementById(modalId).classList.remove("active");
+}
+
+document.querySelectorAll(".close-modal, .close-modal-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+        const modal = e.target.closest(".modal");
+        if (modal) modal.classList.remove("active");
+    });
+});
+
+/* ==========================================
+   Warehouse Equipment Management
+   ========================================== */
+function initEventListeners() {
+    // Open Add Equipment Modal
+    document.getElementById("open-add-equipment-modal").addEventListener("click", () => {
+        document.getElementById("equipment-modal-title").textContent = "إضافة معدة جديدة للمستودع";
+        document.getElementById("equipment-form").reset();
+        document.getElementById("eq-id").value = "";
+        openModal("equipment-modal");
+    });
+
+    // Save Equipment Form
+    document.getElementById("equipment-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const id = document.getElementById("eq-id").value;
+        const name = document.getElementById("eq-name").value.trim();
+        const brand = document.getElementById("eq-brand").value.trim();
+        const model = document.getElementById("eq-model").value.trim();
+        const type = document.getElementById("eq-type").value.trim();
+        const available = parseInt(document.getElementById("eq-available").value) || 0;
+        const notes = document.getElementById("eq-notes").value.trim();
+
+        if (id) {
+            // Edit existing
+            const eq = appData.warehouseEquipment.find(item => item.id === id);
+            if (eq) {
+                eq.name = name;
+                eq.brand = brand;
+                eq.model = model;
+                eq.type = type;
+                eq.available = available;
+                eq.notes = notes;
+            }
+            showToast("تم تحديث المعدة بنجاح");
+        } else {
+            // Add new
+            const newEq = {
+                id: "EQ_" + Date.now(),
+                name, brand, model, type, available, notes
+            };
+            appData.warehouseEquipment.push(newEq);
+            showToast("تمت إضافة المعدة إلى المستودع بنجاح");
+        }
+
+        saveData();
+        renderWarehouse();
+        closeModal("equipment-modal");
+    });
+
+    // Warehouse Search
+    document.getElementById("warehouse-search").addEventListener("input", (e) => {
+        renderWarehouse(e.target.value);
+    });
+
+    // Open Add Project Modal
+    document.getElementById("open-add-project-modal").addEventListener("click", () => {
+        document.getElementById("project-modal-title").textContent = "مشروع جديد";
+        document.getElementById("project-form").reset();
+        document.getElementById("project-id").value = "";
+        openModal("project-modal");
+    });
+
+    // Quick add from mobile top bar
+    document.getElementById("quick-add-btn").addEventListener("click", () => {
+        openModal("project-modal");
+    });
+
+    // Save Project Form
+    document.getElementById("project-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const id = document.getElementById("project-id").value;
+        const name = document.getElementById("p-name").value.trim();
+        const client = document.getElementById("p-client").value.trim();
+        const venue = document.getElementById("p-venue").value.trim();
+        const date = document.getElementById("p-date").value;
+        const time = document.getElementById("p-time").value;
+        const setupDate = document.getElementById("p-setup-date").value;
+        const notes = document.getElementById("p-notes").value.trim();
+
+        if (id) {
+            const proj = appData.projects.find(p => p.id === id);
+            if (proj) {
+                proj.name = name;
+                proj.client = client;
+                proj.venue = venue;
+                proj.date = date;
+                proj.time = time;
+                proj.setupDate = setupDate;
+                proj.notes = notes;
+                proj.updatedAt = new Date().toISOString().split("T")[0];
+            }
+            showToast("تم تحديث بيانات المشروع");
+        } else {
+            const newProj = {
+                id: "PRJ_" + Date.now(),
+                name, client, venue, date, time, setupDate, notes,
+                createdAt: new Date().toISOString().split("T")[0],
+                updatedAt: new Date().toISOString().split("T")[0],
+                versions: [
+                    {
+                        versionId: "VER_1",
+                        versionNumber: 1,
+                        versionName: " Version",
+                        createdAt: new Date().toISOString().split("T")[0],
+                        equipment: []
+                    }
+                ],
+                currentVersionId: "VER_1"
+            };
+            appData.projects.push(newProj);
+            showToast("تم إنشاء المشروع بنجاح");
+        }
+
+        saveData();
+        renderProjects();
+        closeModal("project-modal");
+        if (currentProjectId) {
+            openProjectDetails(currentProjectId);
+        }
+    });
+
+    // Project Search
+    document.getElementById("project-search").addEventListener("input", (e) => {
+        renderProjects(e.target.value);
+    });
+
+    // Add Equipment to Project Modal
+    document.getElementById("open-open-add-proj-equip-modal")?.addEventListener("click", () => {
+        // Handled dynamically
+    });
+    document.getElementById("open-add-proj-equip-modal").addEventListener("click", () => {
+        populateWarehouseDropdown();
+        document.getElementById("project-equipment-form").reset();
+        document.getElementById("proj-eq-edit-index").value = "-1";
+        openModal("project-equipment-modal");
+    });
+
+    // Save Project Equipment
+    document.getElementById("project-equipment-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const editIdx = parseInt(document.getElementById("proj-eq-edit-index").value);
+        const eqId = document.getElementById("select-warehouse-eq").value;
+        const required = parseInt(document.getElementById("proj-eq-required").value) || 0;
+        const notes = document.getElementById("proj-eq-notes").value.trim();
+
+        const proj = appData.projects.find(p => p.id === currentProjectId);
+        if (!proj) return;
+
+        const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId);
+        if (!currentVer) return;
+
+        if (editIdx >= 0) {
+            // Update existing entry in version
+            currentVer.equipment[editIdx] = { eqId, required, notes };
+            showToast("تم تحديث المعدة في المشروع");
+        } else {
+            // Check if already exists in version
+            const existing = currentVer.equipment.find(item => item.eqId === eqId);
+            if (existing) {
+                existing.required += required;
+                if (notes) existing.notes = notes;
+                showToast("تم تحديث كمية المعدة المطلوبة");
+            } else {
+                currentVer.equipment.push({ eqId, required, notes });
+                showToast("تمت إضافة المعدة إلى المشروع");
+            }
+        }
+
+        proj.updatedAt = new Date().toISOString().split("T")[0];
+        saveData();
+        openProjectDetails(currentProjectId);
+        closeModal("project-equipment-modal");
+    });
+
+    // Versions Modal Trigger
+    document.getElementById("open-versions-modal").addEventListener("click", () => {
+        renderVersionsModalTable();
+        openModal("versions-modal");
+    });
+
+    // Create New Version
+    document.getElementById("create-version-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const verName = document.getElementById("new-version-name").value.trim();
+        const proj = appData.projects.find(p => p.id === currentProjectId);
+        if (!proj) return;
+
+        // Find current version to snapshot its equipment independently
+        const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId);
+        const clonedEquipment = currentVer ? JSON.parse(JSON.stringify(currentVer.equipment)) : [];
+
+        const newVerId = "VER_" + Date.now();
+        const newVerNum = proj.versions.length + 1;
+
+        const newVersion = {
+            versionId: newVerId,
+            versionNumber: newVerNum,
+            versionName: verName || `الإصدار ${newVerNum}`,
+            createdAt: new Date().toISOString().split("T")[0],
+            equipment: clonedEquipment // Snapshot copy
+        };
+
+        proj.versions.push(newVersion);
+        proj.currentVersionId = newVerId;
+        proj.updatedAt = new Date().toISOString().split("T")[0];
+
+        saveData();
+        document.getElementById("new-version-name").value = "";
+        renderVersionsModalTable();
+        openProjectDetails(currentProjectId);
+        showToast("تم إنشاء إصدار جديد مستقل بنجاح");
+    });
+
+    // Company Settings Form
+    document.getElementById("company-settings-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        appData.companySettings.name = document.getElementById("comp-name").value.trim();
+        appData.companySettings.nameEn = document.getElementById("comp-name-en").value.trim();
+        appData.companySettings.phone = document.getElementById("comp-phone").value.trim();
+        appData.companySettings.email = document.getElementById("comp-email").value.trim();
+        appData.companySettings.website = document.getElementById("comp-website").value.trim();
+        appData.companySettings.address = document.getElementById("comp-address").value.trim();
+
+        appData.engineerSettings.name = document.getElementById("eng-name").value.trim();
+        appData.engineerSettings.title = document.getElementById("eng-title").value.trim();
+        appData.engineerSettings.phone = document.getElementById("eng-phone").value.trim();
+        appData.engineerSettings.email = document.getElementById("eng-email").value.trim();
+
+        saveData();
+        updateSidebarCompanyInfo();
+        showToast("تم حفظ الإعدادات بنجاح");
+    });
+
+    // Logo Upload & Delete
+    document.getElementById("upload-logo-btn").addEventListener("click", () => {
+        document.getElementById("logo-file-input").click();
+    });
+
+    document.getElementById("logo-file-input").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                appData.companySettings.logo = event.target.result;
+                saveData();
+                renderLogoPreview();
+                showToast("تم رفع الشعار بنجاح");
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById("delete-logo-btn").addEventListener("click", () => {
+        appData.companySettings.logo = "";
+        saveData();
+        renderLogoPreview();
+        showToast("تم حذف الشعار");
+    });
+
+    // Backup & Restore Buttons
+    document.getElementById("create-backup-btn").addEventListener("click", () => {
+        createBackupFile();
+    });
+
+    document.getElementById("trigger-restore-btn").addEventListener("click", () => {
+        document.getElementById("restore-file-input").click();
+    });
+
+    document.getElementById("restore-file-input").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            restoreBackupFile(file);
+        }
+    });
+
+    // Print & PDF Preview Triggers
+    document.getElementById("print-preview-btn").addEventListener("click", () => {
+        generatePrintPreviewContent();
+        document.getElementById("print-preview-modal").classList.add("active");
+    });
+
+    document.getElementById("close-preview-btn").addEventListener("click", () => {
+        document.getElementById("print-preview-modal").classList.remove("active");
+    });
+
+    document.getElementById("print-doc-btn").addEventListener("click", () => {
+        window.print();
+    });
+
+    document.getElementById("download-pdf-btn").addEventListener("click", () => {
+        exportProjectPDF();
+    });
 }
 
 /* ==========================================
-   1. WAREHOUSE MANAGEMENT
+   Warehouse Rendering
    ========================================== */
-function renderWarehouse() {
-    const query = document.getElementById('warehouseSearchInput').value.toLowerCase();
-    const typeFilter = document.getElementById('warehouseTypeFilter').value;
-    const tbody = document.getElementById('warehouseTableBody');
-    tbody.innerHTML = '';
+function renderWarehouse(searchTerm = "") {
+    const tbody = document.getElementById("warehouse-table-body");
+    const mobileCards = document.getElementById("warehouse-mobile-cards");
+    tbody.innerHTML = "";
+    mobileCards.innerHTML = "";
 
-    const filtered = state.warehouse.filter(item => {
-        const matchesQuery = item.name.toLowerCase().includes(query) || 
-                             item.brand.toLowerCase().includes(query) || 
-                             item.model.toLowerCase().includes(query) || 
-                             item.type.toLowerCase().includes(query);
-        const matchesType = !typeFilter || item.type === typeFilter;
-        return matchesQuery && matchesType;
+    const filtered = appData.warehouseEquipment.filter(item => {
+        const term = searchTerm.toLowerCase();
+        return item.name.toLowerCase().includes(term) ||
+               item.brand.toLowerCase().includes(term) ||
+               item.model.toLowerCase().includes(term) ||
+               item.type.toLowerCase().includes(term);
     });
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">لا توجد معدات مطابقة للبحث</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">لا توجد معدات في المستودع</td></tr>`;
+        mobileCards.innerHTML = `<p style="text-align: center; color: var(--text-secondary);">لا توجد معدات</p>`;
         return;
     }
 
     filtered.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-950/40 transition";
+        // Table row
+        const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td class="p-4 font-bold text-white">${item.name}</td>
-            <td class="p-4 text-slate-300">${item.brand || '—'}</td>
-            <td class="p-4 text-slate-300">${item.model || '—'}</td>
-            <td class="p-4"><span class="px-2 py-1 rounded-md bg-slate-800 text-xs text-brand-400 font-semibold">${item.type}</span></td>
-            <td class="p-4 font-black text-brand-400 text-base">${item.qty}</td>
-            <td class="p-4 text-slate-400 text-xs">${item.notes || '—'}</td>
-            <td class="p-4 text-center">
-                <div class="flex items-center justify-center space-x-2 space-x-reverse">
-                    <button onclick="editEquipment('${item.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="تعديل"><i class="fa-solid fa-pen text-xs"></i></button>
-                    <button onclick="deleteEquipment('${item.id}')" class="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition" title="حذف"><i class="fa-solid fa-trash text-xs"></i></button>
-                </div>
+            <td><strong>${item.name}</strong></td>
+            <td>${item.brand}</td>
+            <td>${item.model}</td>
+            <td><span class="badge badge-accent">${item.type}</span></td>
+            <td><strong>${item.available}</strong></td>
+            <td>${item.notes || '-'}</td>
+            <td>
+                <button class="icon-btn" onclick="editEquipment('${item.id}')" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                <button class="icon-btn" onclick="confirmDeleteEquipment('${item.id}')" title="حذف" style="color: var(--danger-color);"><i class="fa-solid fa-trash"></i></button>
             </td>
         `;
         tbody.appendChild(tr);
+
+        // Mobile card
+        const card = document.createElement("div");
+        card.className = "project-card";
+        card.innerHTML = `
+            <div class="project-card-header">
+                <h3>${item.name}</h3>
+                <span class="badge badge-accent">${item.type}</span>
+            </div>
+            <div class="project-card-body">
+                <p><i class="fa-solid fa-industry"></i> الشركة: ${item.brand} - ${item.model}</p>
+                <p><i class="fa-solid fa-boxes-stacked"></i> المتوفر: <strong>${item.available}</strong></p>
+                ${item.notes ? `<p><i class="fa-solid fa-note-sticky"></i> ${item.notes}</p>` : ''}
+            </div>
+            <div class="project-card-footer">
+                <button class="btn btn-secondary" onclick="editEquipment('${item.id}')"><i class="fa-solid fa-pen"></i> تعديل</button>
+                <button class="btn btn-danger" onclick="confirmDeleteEquipment('${item.id}')"><i class="fa-solid fa-trash"></i> حذف</button>
+            </div>
+        `;
+        mobileCards.appendChild(card);
     });
-}
-
-function openEquipmentModal() {
-    openModal('equipmentModal');
-}
-
-function saveEquipment(event) {
-    event.preventDefault();
-    const id = document.getElementById('equipId').value;
-    const name = document.getElementById('eqName').value.trim();
-    const brand = document.getElementById('eqBrand').value.trim();
-    const model = document.getElementById('eqModel').value.trim();
-    const type = document.getElementById('eqType').value.trim();
-    const qty = parseInt(document.getElementById('eqQty').value) || 0;
-    const notes = document.getElementById('eqNotes').value.trim();
-
-    if (id) {
-        const item = state.warehouse.find(e => e.id === id);
-        if (item) {
-            item.name = name;
-            item.brand = brand;
-            item.model = model;
-            item.type = type;
-            item.qty = qty;
-            item.notes = notes;
-        }
-    } else {
-        const newItem = {
-            id: 'eq_' + Date.now(),
-            name, brand, model, type, qty, notes
-        };
-        state.warehouse.push(newItem);
-    }
-
-    persistData();
-    closeModal('equipmentModal');
-    renderWarehouse();
-    populateWarehouseTypeFilter();
 }
 
 function editEquipment(id) {
-    const item = state.warehouse.find(e => e.id === id);
+    const item = appData.warehouseEquipment.find(i => i.id === id);
     if (!item) return;
-    openModal('equipmentModal');
-    document.getElementById('equipmentModalTitle').innerText = i18n[state.language].modalEditEquip;
-    document.getElementById('equipId').value = item.id;
-    document.getElementById('eqName').value = item.name;
-    document.getElementById('eqBrand').value = item.brand;
-    document.getElementById('eqModel').value = item.model;
-    document.getElementById('eqType').value = item.type;
-    document.getElementById('eqQty').value = item.qty;
-    document.getElementById('eqNotes').value = item.notes;
+
+    document.getElementById("equipment-modal-title").textContent = "تعديل بيانات المعدة";
+    document.getElementById("eq-id").value = item.id;
+    document.getElementById("eq-name").value = item.name;
+    document.getElementById("eq-brand").value = item.brand;
+    document.getElementById("eq-model").value = item.model;
+    document.getElementById("eq-type").value = item.type;
+    document.getElementById("eq-available").value = item.available;
+    document.getElementById("eq-notes").value = item.notes || "";
+
+    openModal("equipment-modal");
 }
 
-function deleteEquipment(id) {
-    if (confirm(i18n[state.language].confirmDeleteEquip)) {
-        state.warehouse = state.warehouse.filter(e => e.id !== id);
-        persistData();
+function confirmDeleteEquipment(id) {
+    showConfirmDialog("هل أنت متأكد من حذف هذه المعدة من المستودع؟", () => {
+        appData.warehouseEquipment = appData.warehouseEquipment.filter(i => i.id !== id);
+        saveData();
         renderWarehouse();
-        populateWarehouseTypeFilter();
-    }
-}
-
-function populateWarehouseTypeFilter() {
-    const select = document.getElementById('warehouseTypeFilter');
-    const currentVal = select.value;
-    const types = [...new Set(state.warehouse.map(e => e.type))];
-    
-    select.innerHTML = `<option value="">${i18n[state.language].allTypes}</option>`;
-    types.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t;
-        opt.innerText = t;
-        if (t === currentVal) opt.selected = true;
-        select.appendChild(opt);
+        showToast("تم حذف المعدة بنجاح");
     });
 }
 
-
 /* ==========================================
-   2. PROJECTS MANAGEMENT
+   Projects Rendering
    ========================================== */
-function renderProjects() {
-    const query = document.getElementById('projectSearchInput').value.toLowerCase();
-    const grid = document.getElementById('projectsGrid');
-    grid.innerHTML = '';
+function renderProjects(searchTerm = "") {
+    const grid = document.getElementById("projects-grid");
+    grid.innerHTML = "";
 
-    const filtered = state.projects.filter(p => 
-        p.name.toLowerCase().includes(query) || p.venue.toLowerCase().includes(query) || (p.client && p.client.toLowerCase().includes(query))
-    );
+    const filtered = appData.projects.filter(p => {
+        const term = searchTerm.toLowerCase();
+        return p.name.toLowerCase().includes(term) ||
+               p.venue.toLowerCase().includes(term) ||
+               (p.client && p.client.toLowerCase().includes(term));
+    });
 
     if (filtered.length === 0) {
-        grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500">لا توجد مشاريع حالياً. اضغط على "إضافة مشروع جديد" للبدء.</div>`;
+        grid.innerHTML = `<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 40px;">لا توجد مشاريع مضافة حالياً. ابدأ بإنشاء مشروع جديد.</p>`;
         return;
     }
 
     filtered.forEach(proj => {
-        const currentVersion = proj.versions.find(v => v.id === proj.currentVersionId) || proj.versions[0];
-        const totalEquipQty = currentVersion ? currentVersion.equipment.reduce((sum, item) => sum + item.requiredQty, 0) : 0;
-        const equipTypesCount = currentVersion ? currentVersion.equipment.length : 0;
+        // Calculate totals for current version
+        const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId) || proj.versions[0];
+        const typesCount = currentVer ? currentVer.equipment.length : 0;
+        
+        let totalReq = 0;
+        let totalShort = 0;
 
-        const card = document.createElement('div');
-        card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl hover:border-brand-500/50 transition flex flex-col justify-between";
+        if (currentVer) {
+            currentVer.equipment.forEach(item => {
+                totalReq += item.required;
+                const whItem = appData.warehouseEquipment.find(w => w.id === item.eqId);
+                const avail = whItem ? whItem.available : 0;
+                const short = Math.max(0, item.required - avail);
+                totalShort += short;
+            });
+        }
+
+        const card = document.createElement("div");
+        card.className = "project-card";
         card.innerHTML = `
-            <div>
-                <div class="flex justify-between items-start mb-3">
-                    <span class="text-xs px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 font-bold border border-brand-500/20">${currentVersion ? currentVersion.name : 'V1'}</span>
-                    <span class="text-xs text-slate-400"><i class="fa-solid fa-calendar ml-1 text-brand-400"></i>${proj.eventDate}</span>
+            <div class="project-card-header">
+                <h3>${proj.name}</h3>
+                <span class="badge badge-accent">${currentVer ? currentVer.versionName : 'v1'}</span>
+            </div>
+            <div class="project-card-body">
+                <p><i class="fa-solid fa-location-dot"></i> ${proj.venue}</p>
+                <p><i class="fa-solid fa-calendar"></i> ${proj.date} ${proj.time ? '- ' + proj.time : ''}</p>
+                ${proj.client ? `<p><i class="fa-solid fa-user-tie"></i> العميل: ${proj.client}</p>` : ''}
+            </div>
+            <div class="project-stats-mini">
+                <div class="mini-stat">
+                    <label>أنواع المعدات</label>
+                    <span>${typesCount}</span>
                 </div>
-                <h3 onclick="openProjectDetail('${proj.id}')" class="text-xl font-bold text-white hover:text-brand-400 cursor-pointer transition mb-1">${proj.name}</h3>
-                <p class="text-xs text-slate-400 mb-4"><i class="fa-solid fa-location-dot ml-1 text-brand-400"></i>${proj.venue}</p>
-                
-                <div class="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800/80 mb-4 text-xs">
-                    <div><span class="text-slate-500 block">أنواع المعدات:</span><strong class="text-slate-200 text-sm">${equipTypesCount}</strong></div>
-                    <div><span class="text-slate-500 block">إجمالي الكمية:</span><strong class="text-brand-400 text-sm">${totalEquipQty}</strong></div>
+                <div class="mini-stat">
+                    <label>إجمالي المطلوبة</label>
+                    <span>${totalReq}</span>
+                </div>
+                <div class="mini-stat ${totalShort > 0 ? 'alert' : ''}">
+                    <label>النقص</label>
+                    <span>${totalShort}</span>
                 </div>
             </div>
-
-            <div class="flex items-center justify-between pt-4 border-t border-slate-800/80 gap-2">
-                <button onclick="openProjectDetail('${proj.id}')" class="flex-1 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow transition flex items-center justify-center space-x-1 space-x-reverse">
-                    <i class="fa-solid fa-folder-open"></i><span>فتح</span>
-                </button>
-                <button onclick="editProject('${proj.id}')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="تعديل"><i class="fa-solid fa-pen text-xs"></i></button>
-                <button onclick="duplicateProject('${proj.id}')" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-400 transition" title="نسخ المشروع"><i class="fa-solid fa-copy text-xs"></i></button>
-                <button onclick="deleteProject('${proj.id}')" class="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition" title="حذف"><i class="fa-solid fa-trash text-xs"></i></button>
+            <div class="project-card-footer">
+                <button class="btn btn-primary" onclick="openProjectDetails('${proj.id}')"><i class="fa-solid fa-folder-open"></i> فتح</button>
+                <button class="btn btn-secondary" onclick="editProject('${proj.id}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-danger" onclick="confirmDeleteProject('${proj.id}')"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
         grid.appendChild(card);
     });
 }
 
-function saveProject(event) {
-    event.preventDefault();
-    const id = document.getElementById('projectId').value;
-    const name = document.getElementById('projName').value.trim();
-    const client = document.getElementById('projClient').value.trim();
-    const venue = document.getElementById('projVenue').value.trim();
-    const eventDate = document.getElementById('projDate').value;
-    const eventTime = document.getElementById('projTime').value;
-    const setupDate = document.getElementById('projSetupDate').value;
-    const notes = document.getElementById('projNotes').value.trim();
+function openProjectDetails(projId) {
+    currentProjectId = projId;
+    const proj = appData.projects.find(p => p.id === projId);
+    if (!proj) return;
 
-    if (id) {
-        const proj = state.projects.find(p => p.id === id);
-        if (proj) {
-            proj.name = name;
-            proj.client = client;
-            proj.venue = venue;
-            proj.eventDate = eventDate;
-            proj.eventTime = eventTime;
-            proj.setupDate = setupDate;
-            proj.notes = notes;
-            persistData();
-            closeModal('projectModal');
-            if (state.activeTab === 'project-detail' && state.currentProjectId === id) {
-                renderProjectDetailView();
-            } else {
-                renderProjects();
-            }
-        }
-    } else {
-        const newProjId = 'proj_' + Date.now();
-        const firstVersionId = 'v_' + Date.now();
-        const newProj = {
-            id: newProjId,
-            name, client, venue, eventDate, eventTime, setupDate, notes,
-            currentVersionId: firstVersionId,
-            versions: [
-                {
-                    id: firstVersionId,
-                    name: 'Version 1 - Initial',
-                    date: new Date().toISOString().split('T')[0],
-                    notes: 'Initial setup',
-                    equipment: []
-                }
-            ]
-        };
-        state.projects.push(newProj);
-        persistData();
-        closeModal('projectModal');
-        openProjectDetail(newProjId);
-    }
+    const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId) || proj.versions[0];
+
+    // Populate UI
+    document.getElementById("det-proj-name").textContent = proj.name;
+    document.getElementById("det-proj-venue").innerHTML = `<i class="fa-solid fa-location-dot"></i> ${proj.venue} ${proj.client ? '| العميل: ' + proj.client : ''}`;
+    document.getElementById("det-proj-date").innerHTML = `<i class="fa-solid fa-calendar"></i> تاريخ الفعالية: ${proj.date}`;
+    document.getElementById("det-proj-version-badge").textContent = `الإصدار الحالي: ${currentVer.versionName}`;
+    document.getElementById("versions-count-lbl").textContent = proj.versions.length;
+
+    // Render stats & equipment table
+    renderProjectEquipmentTable(proj, currentVer);
+
+    switchView("project-details-view");
 }
 
 function editProject(id) {
-    const proj = state.projects.find(p => p.id === id);
+    const proj = appData.projects.find(p => p.id === id);
     if (!proj) return;
-    openModal('projectModal');
-    document.getElementById('projectModalTitle').innerText = i18n[state.language].modalEditProject;
-    document.getElementById('projectId').value = proj.id;
-    document.getElementById('projName').value = proj.name;
-    document.getElementById('projClient').value = proj.client || '';
-    document.getElementById('projVenue').value = proj.venue;
-    document.getElementById('projDate').value = proj.eventDate;
-    document.getElementById('projTime').value = proj.eventTime || '';
-    document.getElementById('projSetupDate').value = proj.setupDate || '';
-    document.getElementById('projNotes').value = proj.notes || '';
+
+    document.getElementById("project-modal-title").textContent = "تعديل بيانات المشروع";
+    document.getElementById("project-id").value = proj.id;
+    document.getElementById("p-name").value = proj.name;
+    document.getElementById("p-client").value = proj.client || "";
+    document.getElementById("p-venue").value = proj.venue;
+    document.getElementById("p-date").value = proj.date;
+    document.getElementById("p-time").value = proj.time || "";
+    document.getElementById("p-setup-date").value = proj.setupDate || "";
+    document.getElementById("p-notes").value = proj.notes || "";
+
+    openModal("project-modal");
 }
 
-function openProjectModalForEdit() {
-    if (state.currentProjectId) {
-        editProject(state.currentProjectId);
-    }
+function confirmDeleteProject(id) {
+    showConfirmDialog("هل أنت متأكد من حذف هذا المشروع نهائياً؟", () => {
+        appData.projects = appData.projects.filter(p => p.id !== id);
+        saveData();
+        renderProjects();
+        showToast("تم حذف المشروع بنجاح");
+    });
 }
-
-function deleteProject(id) {
-    if (confirm(i18n[state.language].confirmDeleteProject)) {
-        state.projects = state.projects.filter(p => p.id !== id);
-        persistData();
-        if (state.currentProjectId === id) {
-            switchTab('projects');
-        } else {
-            renderProjects();
-        }
-    }
-}
-
-function duplicateProject(id) {
-    const proj = state.projects.find(p => p.id === id);
-    if (!proj) return;
-    const newId = 'proj_' + Date.now();
-    const cloned = JSON.parse(JSON.stringify(proj));
-    cloned.id = newId;
-    cloned.name = proj.name + ' (Copy)';
-    state.projects.push(cloned);
-    persistData();
-    renderProjects();
-}
-
 
 /* ==========================================
-   3. PROJECT DETAIL & VERSIONS VIEW
+   Project Equipment Rendering
    ========================================== */
-function openProjectDetail(projId) {
-    state.currentProjectId = projId;
-    const proj = state.projects.find(p => p.id === projId);
-    if (!proj) return;
-    if (!proj.currentVersionId && proj.versions.length > 0) {
-        proj.currentVersionId = proj.versions[0].id;
-    }
-    state.currentVersionId = proj.currentVersionId;
-    switchTab('project-detail');
-}
+function renderProjectEquipmentTable(proj, version) {
+    const tbody = document.getElementById("project-equip-table-body");
+    const mobileCards = document.getElementById("project-equip-mobile-cards");
+    tbody.innerHTML = "";
+    mobileCards.innerHTML = "";
 
-function renderProjectDetailView() {
-    const proj = state.projects.find(p => p.id === state.currentProjectId);
-    if (!proj) return;
+    let totalTypes = version.equipment.length;
+    let totalReq = 0;
+    let totalShort = 0;
 
-    // Header Info
-    document.getElementById('detailProjectName').innerText = proj.name;
-    const clientBadge = document.getElementById('detailClientBadge');
-    if (proj.client) {
-        clientBadge.innerText = proj.client;
-        clientBadge.classList.remove('hidden');
+    if (totalTypes === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-secondary);">لا توجد معدات مضافة لهذا الإصدار</td></tr>`;
+        mobileCards.innerHTML = `<p style="text-align: center; color: var(--text-secondary);">لا توجد معدات مضافة</p>`;
     } else {
-        clientBadge.classList.add('hidden');
+        version.equipment.forEach((item, index) => {
+            const whItem = appData.warehouseEquipment.find(w => w.id === item.eqId);
+            const name = whItem ? whItem.name : "معدة غير معروفة";
+            const brand = whItem ? whItem.brand : "-";
+            const model = whItem ? whItem.model : "-";
+            const type = whItem ? whItem.type : "-";
+            const available = whItem ? whItem.available : 0;
+            const required = item.required;
+            const shortage = Math.max(0, required - available);
+
+            totalReq += required;
+            totalShort += shortage;
+
+            // Table Row
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><strong>${name}</strong></td>
+                <td>${brand}</td>
+                <td>${model}</td>
+                <td><span class="badge badge-accent">${type}</span></td>
+                <td>${available}</td>
+                <td><strong>${required}</strong></td>
+                <td><span class="${shortage > 0 ? 'badge badge-alert' : ''}">${shortage}</span></td>
+                <td>${item.notes || '-'}</td>
+                <td>
+                    <button class="icon-btn" onclick="editProjectEquipment(${index})" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                    <button class="icon-btn" onclick="deleteProjectEquipment(${index})" title="حذف" style="color: var(--danger-color);"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+
+            // Mobile Card
+            const card = document.createElement("div");
+            card.className = "project-card";
+            card.innerHTML = `
+                <div class="project-card-header">
+                    <h3>${name}</h3>
+                    <span class="badge ${shortage > 0 ? 'badge-alert' : 'badge-accent'}">نقص: ${shortage}</span>
+                </div>
+                <div class="project-card-body">
+                    <p><i class="fa-solid fa-industry"></i> ${brand} - ${model} (${type})</p>
+                    <p><i class="fa-solid fa-warehouse"></i> المتوفر: ${available} | المطلوبة: <strong>${required}</strong></p>
+                    ${item.notes ? `<p><i class="fa-solid fa-note-sticky"></i> ${item.notes}</p>` : ''}
+                </div>
+                <div class="project-card-footer">
+                    <button class="btn btn-secondary" onclick="editProjectEquipment(${index})"><i class="fa-solid fa-pen"></i> تعديل</button>
+                    <button class="btn btn-danger" onclick="deleteProjectEquipment(${index})"><i class="fa-solid fa-trash"></i> حذف</button>
+                </div>
+            `;
+            mobileCards.appendChild(card);
+        });
     }
-    document.getElementById('detailProjectNotes').innerText = proj.notes || '';
-    document.getElementById('detailVenue').innerText = proj.venue;
-    document.getElementById('detailEventDate').innerText = proj.eventDate;
-    document.getElementById('detailEventTime').innerText = proj.eventTime || '—';
 
-    // Versions Tabs
-    const versionsContainer = document.getElementById('versionsTabsContainer');
-    versionsContainer.innerHTML = '';
-    proj.versions.forEach(v => {
-        const isActive = v.id === state.currentVersionId;
-        const btn = document.createElement('button');
-        btn.onclick = () => {
-            state.currentVersionId = v.id;
-            proj.currentVersionId = v.id;
-            persistData();
-            renderProjectDetailView();
-        };
-        btn.className = `px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${isActive ? 'bg-brand-600 text-white shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`;
-        btn.innerText = v.name;
-        versionsContainer.appendChild(btn);
-    });
-
-    // Current Version Details
-    const currentVersion = proj.versions.find(v => v.id === state.currentVersionId) || proj.versions[0];
-    if (currentVersion) {
-        state.currentVersionId = currentVersion.id;
-        document.getElementById('currentVersionTitle').innerText = currentVersion.name;
-        document.getElementById('currentVersionNotes').innerText = currentVersion.notes || '';
-
-        // Render Equipment Table
-        const tbody = document.getElementById('projectEquipmentTableBody');
-        tbody.innerHTML = '';
-        let totalQty = 0;
-
-        if (currentVersion.equipment.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-500">لا توجد معدات مضافة لهذه النسخة. اضغط على "إضافة معدات للنسخة".</td></tr>`;
-        } else {
-            currentVersion.equipment.forEach((item, index) => {
-                const warehouseItem = state.warehouse.find(w => w.id === item.warehouseId);
-                const warehouseQty = warehouseItem ? warehouseItem.qty : 0;
-                const shortage = Math.max(0, item.requiredQty - warehouseQty);
-                totalQty += item.requiredQty;
-
-                let statusBadge = '';
-                if (shortage === 0) {
-                    statusBadge = `<span class="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold">متوفر بالكامل</span>`;
-                } else if (item.requiredQty > shortage) {
-                    statusBadge = `<span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold">متوفر جزئياً</span>`;
-                } else {
-                    statusBadge = `<span class="px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold">غير متوفر</span>`;
-                }
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-950/40 transition";
-                tr.innerHTML = `
-                    <td class="p-4 font-bold text-white">${warehouseItem ? warehouseItem.name : 'معدة محذوفة'}</td>
-                    <td class="p-4 text-slate-300">${warehouseItem ? warehouseItem.brand : '—'}</td>
-                    <td class="p-4 text-slate-300">${warehouseItem ? warehouseItem.model : '—'}</td>
-                    <td class="p-4"><span class="px-2 py-1 rounded-md bg-slate-800 text-xs text-brand-400 font-semibold">${warehouseItem ? warehouseItem.type : '—'}</span></td>
-                    <td class="p-4 font-black text-brand-400 text-base">
-                        <input type="number" min="1" value="${item.requiredQty}" onchange="updateProjectEquipQty('${currentVersion.id}', '${item.warehouseId}', this.value)" class="w-20 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-center text-white focus:outline-none focus:border-brand-500">
-                    </td>
-                    <td class="p-4 font-bold text-slate-200">${warehouseQty}</td>
-                    <td class="p-4 font-bold ${shortage > 0 ? 'text-red-400' : 'text-slate-500'}">${shortage > 0 ? '+' + shortage : '0'}</td>
-                    <td class="p-4">${statusBadge}</td>
-                    <td class="p-4">
-                        <input type="text" value="${item.notes || ''}" onchange="updateProjectEquipNotes('${currentVersion.id}', '${item.warehouseId}', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-300 focus:outline-none focus:border-brand-500" placeholder="ملاحظة...">
-                    </td>
-                    <td class="p-4 text-center">
-                        <button onclick="removeEquipmentFromProject('${currentVersion.id}', '${item.warehouseId}')" class="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition" title="حذف"><i class="fa-solid fa-trash text-xs"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        document.getElementById('detailTotalQty').innerText = totalQty;
-        document.getElementById('detailTypesCount').innerText = `${currentVersion.equipment.length} أنواع معدات`;
-    }
+    // Update stats
+    document.getElementById("stat-equip-types").textContent = totalTypes;
+    document.getElementById("stat-total-req").textContent = totalReq;
+    document.getElementById("stat-total-short").textContent = totalShort;
 }
 
-// Add Equipment to Project Flow
-function openAddProjectEquipModal() {
-    openModal('addProjectEquipModal');
-}
-
-function populateWarehouseSelectForProject() {
-    const select = document.getElementById('selectWarehouseItem');
-    select.innerHTML = '';
-    state.warehouse.forEach(item => {
-        const opt = document.createElement('option');
-        opt.value = item.id;
-        opt.setAttribute('data-qty', item.qty);
-        opt.innerText = `${item.name} (${item.brand} - ${item.type}) [متوفر: ${item.qty}]`;
+function populateWarehouseDropdown() {
+    const select = document.getElementById("select-warehouse-eq");
+    select.innerHTML = `<option value="">-- اختر المعدة من المستودع --</option>`;
+    appData.warehouseEquipment.forEach(w => {
+        const opt = document.createElement("option");
+        opt.value = w.id;
+        opt.textContent = `${w.name} (${w.brand} - ${w.model}) [متوفر: ${w.available}]`;
         select.appendChild(opt);
     });
-    onWarehouseItemSelected();
 }
 
-function onWarehouseItemSelected() {
-    const select = document.getElementById('selectWarehouseItem');
-    const selectedOpt = select.options[select.selectedIndex];
-    if (selectedOpt) {
-        const availableQty = parseInt(selectedOpt.getAttribute('data-qty')) || 0;
-        document.getElementById('modalAvailableQtyDisplay').innerText = availableQty;
-        const reqInput = document.getElementById('projEquipReqQty');
-        reqInput.max = availableQty * 5; // Allow warning but don't hard block input
-        checkQuantityWarning();
-    }
-}
-
-function checkQuantityWarning() {
-    const select = document.getElementById('selectWarehouseItem');
-    const selectedOpt = select.options[select.selectedIndex];
-    if (!selectedOpt) return;
-    const availableQty = parseInt(selectedOpt.getAttribute('data-qty')) || 0;
-    const requestedQty = parseInt(document.getElementById('projEquipReqQty').value) || 0;
-    const warningMsg = document.getElementById('quantityWarningMsg');
-
-    if (requestedQty > availableQty) {
-        const shortage = requestedQty - availableQty;
-        warningMsg.innerText = `تنبيه: الكمية المطلوبة (${requestedQty}) أكبر من المتوفر في المستودع (${availableQty}). النقص: ${shortage}`;
-        warningMsg.classList.remove('hidden');
-    } else {
-        warningMsg.classList.add('hidden');
-    }
-}
-
-function confirmAddEquipmentToProject(event) {
-    event.preventDefault();
-    const proj = state.projects.find(p => p.id === state.currentProjectId);
+function editProjectEquipment(index) {
+    const proj = appData.projects.find(p => p.id === currentProjectId);
     if (!proj) return;
-    const currentVersion = proj.versions.find(v => v.id === state.currentVersionId);
-    if (!currentVersion) return;
+    const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId);
+    const item = currentVer.equipment[index];
+    if (!item) return;
 
-    const warehouseId = document.getElementById('selectWarehouseItem').value;
-    const requiredQty = parseInt(document.getElementById('projEquipReqQty').value) || 0;
-    const notes = document.getElementById('projEquipNotes').value.trim();
+    populateWarehouseDropdown();
+    document.getElementById("select-warehouse-eq").value = item.eqId;
+    document.getElementById("proj-eq-required").value = item.required;
+    document.getElementById("proj-eq-notes").value = item.notes || "";
+    document.getElementById("proj-eq-edit-index").value = index;
 
-    // Check if equipment already exists in this version
-    const existing = currentVersion.equipment.find(e => e.warehouseId === warehouseId);
-    if (existing) {
-        existing.requiredQty += requiredQty;
-        if (notes) existing.notes = notes;
-    } else {
-        currentVersion.equipment.push({ warehouseId, requiredQty, notes });
-    }
-
-    persistData();
-    closeModal('addProjectEquipModal');
-    renderProjectDetailView();
+    openModal("project-equipment-modal");
 }
 
-function updateProjectEquipQty(versionId, warehouseId, newQty) {
-    const proj = state.projects.find(p => p.id === state.currentProjectId);
-    if (!proj) return;
-    const version = proj.versions.find(v => v.id === versionId);
-    if (!version) return;
-    const item = version.equipment.find(e => e.warehouseId === warehouseId);
-    if (item) {
-        item.requiredQty = Math.max(1, parseInt(newQty) || 1);
-        persistData();
-        renderProjectDetailView();
-    }
+function deleteProjectEquipment(index) {
+    showConfirmDialog("هل أنت متأكد من حذف هذه المعدة من المشروع؟", () => {
+        const proj = appData.projects.find(p => p.id === currentProjectId);
+        if (!proj) return;
+        const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId);
+        currentVer.equipment.splice(index, 1);
+        proj.updatedAt = new Date().toISOString().split("T")[0];
+        saveData();
+        openProjectDetails(currentProjectId);
+        showToast("تم حذف المعدة من المشروع");
+    });
 }
 
-function updateProjectEquipNotes(versionId, warehouseId, newNotes) {
-    const proj = state.projects.find(p => p.id === state.currentProjectId);
-    if (!proj) return;
-    const version = proj.versions.find(v => v.id === versionId);
-    if (!version) return;
-    const item = version.equipment.find(e => e.warehouseId === warehouseId);
-    if (item) {
-        item.notes = newNotes;
-        persistData();
-    }
-}
-
-function removeEquipmentFromProject(versionId, warehouseId) {
-    const proj = state.projects.find(p => p.id === state.currentProjectId);
-    if (!proj) return;
-    const version = proj.versions.find(v => v.id === versionId);
-    if (!version) return;
-    version.equipment = version.equipment.filter(e => e.warehouseId !== warehouseId);
-    persistData();
-    renderProjectDetailView();
-}
-
-// Versions Management
-function openNewVersionModal() {
-    document.getElementById('newVersionNameInput').value = `Version ${(state.projects.find(p => p.id === state.currentProjectId)?.versions.length || 0) + 1}`;
-    document.getElementById('newVersionNotesInput').value = '';
-    openModal('newVersionModal');
-}
-
-function createNewVersion(event) {
-    event.preventDefault();
-    const proj = state.projects.find(p => p.id === state.currentProjectId);
+/* ==========================================
+   Versions Management
+   ========================================== */
+function renderVersionsModalTable() {
+    const proj = appData.projects.find(p => p.id === currentProjectId);
     if (!proj) return;
 
-    const name = document.getElementById('newVersionNameInput').value.trim();
-    const notes = document.getElementById('newVersionNotesInput').value.trim();
-    const newVersionId = 'v_' + Date.now();
+    const tbody = document.getElementById("versions-table-body");
+    tbody.innerHTML = "";
 
-    // Deep clone equipment from current version as starting point
-    const currentVersion = proj.versions.find(v => v.id === state.currentVersionId) || proj.versions[proj.versions.length - 1];
-    const clonedEquip = currentVersion ? JSON.parse(JSON.stringify(currentVersion.equipment)) : [];
-
-    const newVersion = {
-        id: newVersionId,
-        name,
-        date: new Date().toISOString().split('T')[0],
-        notes,
-        equipment: clonedEquip
-    };
-
-    proj.versions.push(newVersion);
-    proj.currentVersionId = newVersionId;
-    state.currentVersionId = newVersionId;
-    persistData();
-    closeModal('newVersionModal');
-    renderProjectDetailView();
+    proj.versions.forEach(ver => {
+        const isCurrent = ver.versionId === proj.currentVersionId;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td><strong>v${ver.versionNumber}</strong></td>
+            <td>${ver.versionName}</td>
+            <td>${ver.createdAt}</td>
+            <td>${isCurrent ? '<span class="badge badge-accent">الإصدار الحالي</span>' : '-'}</td>
+            <td>
+                ${!isCurrent ? `<button class="btn btn-secondary" onclick="switchCurrentVersion('${ver.versionId}')"><i class="fa-solid fa-check"></i> تعيين كحالي</button>` : ''}
+                <button class="icon-btn" onclick="confirmDeleteVersion('${ver.versionId}')" title="حذف الإصدار" style="color: var(--danger-color);"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
-function editCurrentVersionMeta() {
-    const proj = state.projects.find(p => p.id === state.currentProjectId);
+function switchCurrentVersion(versionId) {
+    const proj = appData.projects.find(p => p.id === currentProjectId);
     if (!proj) return;
-    const version = proj.versions.find(v => v.id === state.currentVersionId);
-    if (!version) return;
-
-    document.getElementById('editVersionNameInput').value = version.name;
-    document.getElementById('editVersionNotesInput').value = version.notes || '';
-    openModal('editVersionModal');
+    proj.currentVersionId = versionId;
+    saveData();
+    renderVersionsModalTable();
+    openProjectDetails(currentProjectId);
+    showToast("تم تغيير الإصدار الحالي بنجاح");
 }
 
-function saveEditedVersionMeta(event) {
-    event.preventDefault();
-    const proj = state.projects.find(p => p.id === state.currentProjectId);
-    if (!proj) return;
-    const version = proj.versions.find(v => v.id === state.currentVersionId);
-    if (!version) return;
-
-    version.name = document.getElementById('editVersionNameInput').value.trim();
-    version.notes = document.getElementById('editVersionNotesInput').value.trim();
-    persistData();
-    closeModal('editVersionModal');
-    renderProjectDetailView();
-}
-
-function deleteCurrentVersion() {
-    const proj = state.projects.find(p => p.id === state.currentProjectId);
+function confirmDeleteVersion(versionId) {
+    const proj = appData.projects.find(p => p.id === currentProjectId);
     if (!proj) return;
     if (proj.versions.length <= 1) {
-        alert('لا يمكن حذف النسخة الوحيدة المتبقية في المشروع.');
+        showToast("لا يمكن حذف الإصدار الوحيد للمشروع", "error");
         return;
     }
-    if (confirm(i18n[state.language].confirmDeleteVersion)) {
-        proj.versions = proj.versions.filter(v => v.id !== state.currentVersionId);
-        proj.currentVersionId = proj.versions[0].id;
-        state.currentVersionId = proj.currentVersionId;
-        persistData();
-        renderProjectDetailView();
-    }
-}
 
-
-/* ==========================================
-   4. PROFESSIONAL A4 PRINT & PDF ENGINE
-   ========================================== */
-function printCurrentVersion() {
-    const proj = state.projects.find(p => p.id === state.currentProjectId);
-    if (!proj) return;
-    const version = proj.versions.find(v => v.id === state.currentVersionId);
-    if (!version) return;
-
-    const printArea = document.getElementById('printArea');
-    if (!printArea) return;
-
-    let rowsHTML = '';
-    let totalReq = 0;
-
-    version.equipment.forEach((item, idx) => {
-        const wh = state.warehouse.find(w => w.id === item.warehouseId);
-        const whQty = wh ? wh.qty : 0;
-        const shortage = Math.max(0, item.requiredQty - whQty);
-        totalReq += item.requiredQty;
-
-        rowsHTML += `
-            <tr style="border-bottom: 1px solid #edf2f7; transition: background 0.2s;">
-                <td style="padding: 12px 10px; text-align: center; font-weight: 700; color: #4a5568;">${idx + 1}</td>
-                <td style="padding: 12px 10px; font-weight: 700; color: #1a202c;">${wh ? wh.name : '—'}</td>
-                <td style="padding: 12px 10px; color: #4a5568;">${wh ? wh.brand : '—'}</td>
-                <td style="padding: 12px 10px; color: #4a5568;">${wh ? wh.model : '—'}</td>
-                <td style="padding: 12px 10px; color: #4a5568;">${wh ? wh.type : '—'}</td>
-                <td style="padding: 12px 10px; text-align: center; font-weight: 800; color: #2f855a;">${item.requiredQty}</td>
-                <td style="padding: 12px 10px; text-align: center; color: #4a5568; font-weight: 600;">${whQty}</td>
-                <td style="padding: 12px 10px; text-align: center; color: ${shortage > 0 ? '#e53e3e' : '#718096'}; font-weight: 800;">
-                    ${shortage > 0 ? `+${shortage}` : '0'}
-                </td>
-                <td style="padding: 12px 10px; color: #718096; font-size: 11px;">${item.notes || '—'}</td>
-            </tr>
-        `;
+    showConfirmDialog("هل أنت متأكد من حذف هذا الإصدار بشكل نهائي؟", () => {
+        proj.versions = proj.versions.filter(v => v.versionId !== versionId);
+        if (proj.currentVersionId === versionId) {
+            proj.currentVersionId = proj.versions[0].versionId;
+        }
+        saveData();
+        renderVersionsModalTable();
+        openProjectDetails(currentProjectId);
+        showToast("تم حذف الإصدار بنجاح");
     });
-
-    const isRtl = state.language === 'ar';
-
-    printArea.innerHTML = `
-        <div style="font-family: 'Cairo', 'Inter', sans-serif; padding: 30px; color: #1a202c; direction: ${isRtl ? 'rtl' : 'ltr'}; background: #ffffff;">
-            
-            <!-- Header احترافي وفاخر -->
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a202c; padding-bottom: 20px; margin-bottom: 25px;">
-                <div>
-                    <h1 style="font-size: 22px; font-weight: 900; margin: 0; color: #1a202c; letter-spacing: 0.5px;">STAGE LIGHTING SPECIFICATION</h1>
-                    <p style="font-size: 11px; color: #718096; margin: 4px 0 0 0; font-weight: 600;">StageLight Pro — Professional Event Equipment Sheet</p>
-                </div>
-                <div style="text-align: ${isRtl ? 'left' : 'right'};">
-                    <h2 style="font-size: 15px; font-weight: 800; margin: 0; color: #2f855a;">${proj.name}</h2>
-                    <p style="font-size: 11px; color: #4a5568; margin: 3px 0;">Version: <strong>${version.name}</strong></p>
-                    <p style="font-size: 11px; color: #718096; margin: 0;">Date: ${new Date().toISOString().split('T')[0]}</p>
-                </div>
-            </div>
-
-            <!-- Project Info Grid (بطاقة معلومات المشروع الأنيقة) -->
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; background: #fdfbf7; border: 1px solid #e2d9c5; padding: 15px; border-radius: 8px; margin-bottom: 25px; font-size: 12px;">
-                <div><strong style="color: #4a5568;">Client:</strong> <span style="color: #1a202c; font-weight: 600;">${proj.client || '—'}</span></div>
-                <div><strong style="color: #4a5568;">Venue:</strong> <span style="color: #1a202c; font-weight: 600;">${proj.venue || '—'}</span></div>
-                <div><strong style="color: #4a5568;">Event Date:</strong> <span style="color: #1a202c; font-weight: 600;">${proj.eventDate} (${proj.eventTime || '—'})</span></div>
-                <div><strong style="color: #4a5568;">Setup Date:</strong> <span style="color: #1a202c; font-weight: 600;">${proj.setupDate || '—'}</span></div>
-                <div><strong style="color: #4a5568;">Total Types:</strong> <span style="color: #1a202c; font-weight: 600;">${version.equipment.length}</span></div>
-                <div><strong style="color: #4a5568;">Total Quantity:</strong> <span style="color: #1a202c; font-weight: 600;">${totalReq}</span></div>
-            </div>
-
-            <!-- Equipment Table (جدول المعدات الاحترافي) -->
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 25px;">
-                <thead>
-                    <tr style="background: #1a202c; color: #ffffff; text-align: ${isRtl ? 'right' : 'left'};">
-                        <th style="padding: 12px 10px; text-align: center; border-top-right-radius: 6px; border-bottom-right-radius: ${isRtl ? '6px' : '0'}; border-top-left-radius: ${isRtl ? '0' : '6px'};">#</th>
-                        <th style="padding: 12px 10px;">Equipment</th>
-                        <th style="padding: 12px 10px;">Brand</th>
-                        <th style="padding: 12px 10px;">Model</th>
-                        <th style="padding: 12px 10px;">Type</th>
-                        <th style="padding: 12px 10px; text-align: center;">Required</th>
-                        <th style="padding: 12px 10px; text-align: center;">Warehouse</th>
-                        <th style="padding: 12px 10px; text-align: center;">Shortage</th>
-                        <th style="padding: 12px 10px; border-top-left-radius: 6px; border-bottom-left-radius: ${isRtl ? '0' : '6px'}; border-top-right-radius: ${isRtl ? '6px' : '0'};">Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rowsHTML}
-                </tbody>
-            </table>
-
-            <!-- Notes Section (قسم الملاحظات إن وُجد) -->
-            ${version.notes || proj.notes ? `
-                <div style="margin-bottom: 25px; padding: 12px 15px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 11px; border-left: 4px solid #c5a059;">
-                    <strong style="color: #1a202c;">Notes:</strong> <span style="color: #4a5568;">${version.notes || proj.notes}</span>
-                </div>
-            ` : ''}
-
-            <!-- Footer (تذييل الصفحة ومنطقة التوقيعات أو الاعتماد) -->
-            <div style="margin-top: 40px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #a0aec0; border-top: 1px solid #e2e8f0; padding-top: 15px;">
-                <span>StageLight Pro Enterprise System</span>
-                <span>Generated automatically via system</span>
-            </div>
-        </div>
-    `;
-
-    window.print();
 }
+
 /* ==========================================
-   5. BACKUP & RESTORE
+   Backup & Restore
    ========================================== */
-function exportBackup() {
-    const backupData = {
-        version: '1.0',
-        exportDate: new Date().toISOString(),
-        warehouse: state.warehouse,
-        projects: state.projects,
-        language: state.language
-    };
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-    const dlAnchor = document.createElement('a');
-    dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download", `StageLightPro_Backup_${new Date().toISOString().split('T')[0]}.json`);
-    document.body.appendChild(dlAnchor);
-    dlAnchor.click();
-    dlAnchor.remove();
+function createBackupFile() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+    const downloadAnchor = document.createElement("a");
+    const dateStr = new Date().toISOString().split("T")[0];
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `LightingManager_Backup_${dateStr}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    showToast("تم إنشاء وتنزيل النسخة الاحتياطية بنجاح");
 }
 
-function importBackup(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+function restoreBackupFile(file) {
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function(event) {
         try {
-            const parsed = JSON.parse(e.target.result);
-            if (parsed.warehouse && parsed.projects) {
-                state.warehouse = parsed.warehouse;
-                state.projects = parsed.projects;
-                if (parsed.language) state.language = parsed.language;
-                persistData();
-                applyLanguage();
-                renderProjects();
-                renderWarehouse();
-                alert('تم استعادة البيانات بنجاح!');
+            const parsed = JSON.parse(event.target.result);
+            // Validation
+            if (parsed && Array.isArray(parsed.projects) && Array.isArray(parsed.warehouseEquipment)) {
+                showConfirmDialog("تحذير: استعادة النسخة الاحتياطية ستستبدل كافة البيانات الحالية. هل تريد المتابعة؟", () => {
+                    appData = parsed;
+                    saveData();
+                    renderProjects();
+                    renderWarehouse();
+                    updateSidebarCompanyInfo();
+                    fillCompanySettingsForm();
+                    showToast("تم استعادة البيانات بنجاح");
+                });
             } else {
-                alert('ملف النسخة الاحتياطية غير صالح.');
+                showToast("ملف النسخة الاحتياطية غير صالح أو تالف", "error");
             }
-        } catch (err) {
-            alert('حدث خطأ أثناء قراءة ملف النسخة الاحتياطية.');
+        } catch (e) {
+            showToast("خطأ في قراءة ملف JSON", "error");
         }
     };
     reader.readAsText(file);
 }
+
+/* ==========================================
+   Company Settings & Logo Rendering
+   ========================================== */
+function updateSidebarCompanyInfo() {
+    document.getElementById("mini-comp-name").textContent = appData.companySettings.name || "شركة الإضاءة";
+    document.getElementById("mini-eng-name").textContent = appData.engineerSettings.name || "مهندس الإضاءة";
+    renderLogoPreview();
+}
+
+function fillCompanySettingsForm() {
+    document.getElementById("comp-name").value = appData.companySettings.name || "";
+    document.getElementById("comp-name-en").value = appData.companySettings.nameEn || "";
+    document.getElementById("comp-phone").value = appData.companySettings.phone || "";
+    document.getElementById("comp-email").value = appData.companySettings.email || "";
+    document.getElementById("comp-website").value = appData.companySettings.website || "";
+    document.getElementById("comp-address").value = appData.companySettings.address || "";
+
+    document.getElementById("eng-name").value = appData.engineerSettings.name || "";
+    document.getElementById("eng-title").value = appData.engineerSettings.title || "";
+    document.getElementById("eng-phone").value = appData.engineerSettings.phone || "";
+    document.getElementById("eng-email").value = appData.engineerSettings.email || "";
+
+    renderLogoPreview();
+}
+
+function renderLogoPreview() {
+    const box = document.getElementById("logo-preview-box");
+    if (appData.companySettings.logo) {
+        box.innerHTML = `<img src="${appData.companySettings.logo}" alt="Company Logo">`;
+    } else {
+        box.innerHTML = `<i class="fa-solid fa-image placeholder-icon"></i><span style="font-size:0.8rem; color:var(--text-secondary);">No Logo</span>`;
+    }
+}
+
+/* ==========================================
+    Print Preview & PDF Export (Professional Cinematic Lighting Report)
+    ========================================== */
+function generatePrintPreviewContent() {
+    const proj = appData.projects.find(p => p.id === currentProjectId);
+    if (!proj) return;
+    const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId) || proj.versions[0];
+
+    const docEl = document.getElementById("a4-document");
+    if (!docEl) return;
+
+    // إعداد حاوية الـ A4 بخلفية بيضاء صلبة وخطوط إنجليزية عريضة وأنيقة
+    docEl.style.cssText = `
+        all: initial !important;
+        display: block !important;
+        box-sizing: border-box !important;
+        font-family: 'Montserrat', 'Inter', 'Segoe UI', sans-serif !important;
+        direction: ltr !important;
+        text-align: left !important;
+        width: 210mm !important;
+        min-height: 297mm !important;
+        background-color: #ffffff !important;
+        color: #1a202c !important;
+        position: relative !important;
+        padding: 12mm 15mm !important;
+        margin: 0 auto !important;
+    `;
+
+    // تجهيز اللوجو بحجم أكبر ومظهر بارز
+    const logoSrc = appData.companySettings.logo || '';
+    const logoHtml = logoSrc ? `<img src="${logoSrc}" alt="Logo" style="max-height: 65px; max-width: 180px; object-fit: contain;">` : '';
+
+    // تجهيز صفوف المعدات (بدون عمود المتوفر Available)
+    let equipmentRowsHtml = '';
+    if (!currentVer.equipment || currentVer.equipment.length === 0) {
+        equipmentRowsHtml = `<tr><td colspan="6" style="text-align: center; padding: 25px; color: #718096; font-family: 'Montserrat', sans-serif; font-weight: 500;">No equipment registered in this version.</td></tr>`;
+    } else {
+        currentVer.equipment.forEach((item) => {
+            const whItem = appData.warehouseEquipment.find(w => w.id === item.eqId);
+            const name = whItem ? whItem.name : "Unknown Fixture";
+            const brand = whItem ? whItem.brand : "-";
+            const model = whItem ? whItem.model : "-";
+            const type = whItem ? whItem.type : "-";
+            const required = item.required;
+
+            equipmentRowsHtml += `
+                <tr style="border-bottom: 1px solid #e2e8f0 !important;">
+                    <td style="padding: 12px 10px !important; font-weight: 700 !important; color: #2d3748 !important; text-align: left !important; font-size: 11px !important;">${name}</td>
+                    <td style="padding: 12px 10px !important; color: #4a5568 !important; text-align: left !important; font-size: 10.5px !important;">${brand}</td>
+                    <td style="padding: 12px 10px !important; color: #4a5568 !important; text-align: left !important; font-size: 10.5px !important;">${model}</td>
+                    <td style="padding: 12px 10px !important; color: #4a5568 !important; text-align: left !important; font-size: 10.5px !important;">${type}</td>
+                    <td style="padding: 12px 10px !important; text-align: center !important; font-weight: 800 !important; color: #1a202c !important; font-size: 12px !important;">${required}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // بناء الهيكل باللغة الإنجليزية بالكامل
+    docEl.innerHTML = `
+        <div style="position: relative !important; z-index: 2 !important; width: 100% !important;">
+            
+            <!-- HEADER / COVER SECTION -->
+            <div style="border-bottom: 2.5px solid #cbd5e0 !important; padding-bottom: 15px !important; margin-bottom: 18px !important; display: flex !important; justify-content: space-between !important; align-items: center !important;">
+                <div>
+                    <div style="font-size: 14px !important; letter-spacing: 4px !important; color: #3182ce !important; font-weight: 800 !important; text-transform: uppercase !important; margin-bottom: 6px !important;">PROFESSIONAL LIGHTING DESIGN REPORT</div>
+                    <h1 style="font-size: 22px !important; font-weight: 900 !important; color: #1a202c !important; margin: 0 !important; line-height: 1.2 !important; letter-spacing: -0.5px !important;">${proj.name}</h1>
+                </div>
+                <div style="text-align: right !important;">
+                    ${logoHtml}
+                    <div style="font-size: 9.5px !important; color: #4a5568 !important; font-weight: 700 !important; margin-top: 4px !important;">${appData.companySettings.name || ''}</div>
+                </div>
+            </div>
+
+            <!-- PROJECT METADATA CARDS -->
+            <div style="display: flex !important; gap: 10px !important; margin-bottom: 12px !important;">
+                <div style="flex: 1 !important; background: #f7fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; padding: 9px 12px !important; border-left: 4px solid #3182ce !important; text-align: left !important;">
+                    <div style="font-size: 8.5px !important; color: #718096 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; letter-spacing: 0.5px !important;">Client</div>
+                    <div style="font-size: 12.5px !important; font-weight: 800 !important; color: #080f0a !important;">${proj.client || "-"}</div>
+                </div>
+                <div style="flex: 1 !important; background: #f7fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; padding: 9px 12px !important; border-left: 4px solid #805ad5 !important; text-align: left !important;">
+                    <div style="font-size: 8.5px !important; color: #718096 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; letter-spacing: 0.5px !important;">Venue</div>
+                    <div style="font-size: 12.5px !important; font-weight: 800 !important; color: #1a202c !important;">${proj.venue || "-"}</div>
+                </div>
+                <div style="flex: 1 !important; background: #f7fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; padding: 9px 12px !important; border-left: 4px solid #3182ce !important; text-align: left !important;">
+                    <div style="font-size: 8.5px !important; color: #718096 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; letter-spacing: 0.5px !important;">Date</div>
+                    <div style="font-size: 12.5px !important; font-weight: 800 !important; color: #1a202c !important;">${proj.date || "-"}</div>
+                </div>
+            </div>
+
+            <!-- SECONDARY METADATA GRID -->
+            <div style="display: flex !important; gap: 8px !important; margin-bottom: 18px !important;">
+                <div style="flex: 1 !important; background: #f7fafc !important; padding: 7px 10px !important; border-radius: 5px !important; border: 1px solid #e2e8f0 !important; text-align: left !important;">
+                    <span style="color: #718096 !important; display: block !important; font-size: 8.5px !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 2px !important;">Version:</span>
+                    <strong style="color: #3182ce !important; font-size: 10.5px !important; font-weight: 800 !important;">${currentVer.versionName} (v${currentVer.versionNumber})</strong>
+                </div>
+                <div style="flex: 1 !important; background: #f7fafc !important; padding: 7px 10px !important; border-radius: 5px !important; border: 1px solid #e2e8f0 !important; text-align: left !important;">
+                    <span style="color: #718096 !important; display: block !important; font-size: 8.5px !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 2px !important;">Show Time:</span>
+                    <strong style="color: #1a202c !important; font-size: 10.5px !important; font-weight: 800 !important;">${proj.time || "-"}</strong>
+                </div>
+                <div style="flex: 1 !important; background: #f7fafc !important; padding: 7px 10px !important; border-radius: 5px !important; border: 1px solid #e2e8f0 !important; text-align: left !important;">
+                    <span style="color: #718096 !important; display: block !important; font-size: 8.5px !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 2px !important;">Setup Date:</span>
+                    <strong style="color: #1a202c !important; font-size: 10.5px !important; font-weight: 800 !important;">${proj.setupDate || "-"}</strong>
+                </div>
+                <div style="flex: 1 !important; background: #f7fafc !important; padding: 7px 10px !important; border-radius: 5px !important; border: 1px solid #e2e8f0 !important; text-align: left !important;">
+                    <span style="color: #718096 !important; display: block !important; font-size: 8.5px !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 2px !important;">Lighting Engineer:</span>
+                    <strong style="color: #1a202c !important; font-size: 10.5px !important; font-weight: 800 !important;">${appData.engineerSettings.name || ''}</strong>
+                </div>
+            </div>
+
+            <!-- NOTES SECTION (IF EXISTS) -->
+            ${proj.notes ? `
+            <div style="background: #ebf8ff !important; border: 1px solid #bee3f8 !important; border-radius: 6px !important; padding: 10px 12px !important; margin-bottom: 18px !important; text-align: left !important;">
+                <div style="font-size: 9.5px !important; color: #2b6cb0 !important; font-weight: 800 !important; margin-bottom: 3px !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;">Project Notes</div>
+                <div style="font-size: 10.5px !important; color: #2d3748 !important; line-height: 1.5 !important; font-weight: 500 !important;">${proj.notes}</div>
+            </div>
+            ` : ''}
+
+            <!-- TECHNICAL EQUIPMENT SPECIFICATION SECTION -->
+            <div style="margin-bottom: 25px !important;">
+                <div style="display: flex !important; align-items: center !important; justify-content: space-between !important; margin-bottom: 10px !important; border-bottom: 1.5px solid #cbd5e0 !important; padding-bottom: 6px !important;">
+                    <h3 style="font-size: 12px !important; font-weight: 800 !important; color: #2b6cb0 !important; margin: 0 !important; letter-spacing: 1.2px !important; text-transform: uppercase !important;">03 // TECHNICAL EQUIPMENT SPECIFICATION</h3>
+                    <span style="font-size: 9.5px !important; color: #718096 !important; font-weight: 700 !important;">Approved Version Manifest</span>
+                </div>
+
+                <table style="width: 100% !important; border-collapse: collapse !important; font-size: 10.5px !important;">
+                    <thead>
+                        <tr style="background: #edf2f7 !important; color: #2b6cb0 !important; border-bottom: 2.5px solid #cbd5e0 !important;">
+                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Fixture</th>
+                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Brand</th>
+                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Model</th>
+                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Type</th>
+                            <th style="padding: 9px 10px !important; text-align: center !important; font-weight: 800 !important; letter-spacing: 0.5px !important;">Required Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${equipmentRowsHtml}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div style="position: relative !important; z-index: 2 !important; width: 100% !important; margin-top: 35px !important; display: flex !important; justify-content: space-between !important; align-items: center !important; font-size: 9.5px !important; color: #718096 !important; font-weight: 700 !important; border-top: 1px solid #e2e8f0 !important; padding-top: 10px !important;">
+            <div>${appData.companySettings.name} &bull; ${appData.engineerSettings.name}</div>
+            <div>Lighting Design Report &bull; Generated: ${new Date().toISOString().split("T")[0]}</div>
+        </div>
+    `;
+}
+
+function exportProjectPDF() {
+    const proj = appData.projects.find(p => p.id === currentProjectId);
+    if (!proj) return;
+    const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId) || proj.versions[0];
+
+    generatePrintPreviewContent();
+    const element = document.getElementById("a4-document");
+
+    const cleanProjectName = proj.name.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, "_");
+    const filename = `${cleanProjectName}_${currentVer.versionName}_${new Date().toISOString().split("T")[0]}.pdf`;
+
+    const opt = {
+        margin:      0,
+        filename:    filename,
+        image:       { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 8, useCORS: true, letterRendering: true },
+        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().from(element).set(opt).save().then(() => {
+        showToast("PDF exported successfully");
+    }).catch(err => {
+        console.error("PDF Export Error:", err);
+        showToast("Error exporting PDF", "error");
+    });
+}
+/* ==========================================
+   Confirm Dialog Utility
+   ========================================== */
+let confirmCallback = null;
+function showConfirmDialog(message, callback) {
+    document.getElementById("confirm-message").textContent = message;
+    confirmCallback = callback;
+    openModal("confirm-modal");
+}
+
+document.getElementById("confirm-yes-btn").addEventListener("click", () => {
+    if (confirmCallback) confirmCallback();
+    closeModal("confirm-modal");
+});
+
+document.getElementById("confirm-no-btn").addEventListener("click", () => {
+    closeModal("confirm-modal");
+});

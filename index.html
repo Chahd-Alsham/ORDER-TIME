@@ -1,453 +1,653 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" id="htmlRoot">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stage Lighting Manager | إدارة مشاريع الإضاءة</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: { 50: '#f0fdf4', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', dark: '#0f172a' }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome Icons -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Lighting Manager - إدارة مشاريع ومعدات الإضاءة</title>
+    <!-- مكتبة لإنشاء ملفات PDF بدعم العربية -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- FontAwesome للأيقونات -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts (Cairo & Inter) -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts - Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-slate-950 text-slate-100 font-['Cairo','Inter',sans-serif] min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+<body>
 
-    <!-- Top Navigation Bar -->
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3 space-x-reverse cursor-pointer" onclick="switchTab('projects')">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
-                    <i class="fa-solid fa-lightbulb text-xl"></i>
+    <!-- App Wrapper -->
+    <div id="app-container">
+        
+        <!-- Mobile Header Bar -->
+        <header class="mobile-header">
+            <button id="sidebar-toggle" class="icon-btn" aria-label="فتح القائمة">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <div class="mobile-logo">
+                <i class="fa-solid fa-bolt-lightning"></i>
+                <span>Lighting Manager</span>
+            </div>
+            <button id="quick-add-btn" class="icon-btn" aria-label="إضافة سريعة">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+        </header>
+
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <i class="fa-solid fa-bolt-lightning"></i>
+                    <h2>Lighting Manager</h2>
                 </div>
-                <div>
-                    <h1 class="font-black text-lg tracking-wide bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent" data-i18n="appTitle">StageLight Pro</h1>
-                    <p class="text-xs text-slate-400" data-i18n="appSubtitle">إدارة مشاريع ومعدات الإضاءة</p>
-                </div>
+                <button id="sidebar-close" class="icon-btn mobile-only" aria-label="إغلاق القائمة">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
 
-            <!-- Navigation Tabs -->
-            <nav class="hidden md:flex items-center space-x-1 space-x-reverse bg-slate-950 p-1 rounded-xl border border-slate-800">
-                <button onclick="switchTab('projects')" id="nav-projects" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-brand-600 text-white shadow">
-                    <i class="fa-solid fa-diagram-project ml-2"></i><span data-i18n="tabProjects">المشاريع</span>
-                </button>
-                <button onclick="switchTab('warehouse')" id="nav-warehouse" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200">
-                    <i class="fa-solid fa-warehouse ml-2"></i><span data-i18n="tabWarehouse">مستودع المعدات</span>
-                </button>
+            <nav class="sidebar-nav">
+                <a href="#projects" class="nav-item active" data-target="projects-view">
+                    <i class="fa-solid fa-diagram-project"></i>
+                    <span>المشاريع</span>
+                </a>
+                <a href="#warehouse" class="nav-item" data-target="warehouse-view">
+                    <i class="fa-solid fa-warehouse"></i>
+                    <span>مستودع المعدات</span>
+                </a>
+                <a href="#backup" class="nav-item" data-target="backup-view">
+                    <i class="fa-solid fa-database"></i>
+                    <span>النسخ الاحتياطي</span>
+                </a>
+                <a href="#settings" class="nav-item" data-target="settings-view">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>الإعدادات والشركة</span>
+                </a>
             </nav>
 
-            <!-- Actions & Settings -->
-            <div class="flex items-center space-x-2 space-x-reverse">
-                <button onclick="toggleLanguage()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold border border-slate-700 transition flex items-center space-x-1 space-x-reverse">
-                    <i class="fa-solid fa-globe text-brand-400"></i>
-                    <span id="langBtnText">EN</span>
-                </button>
-                <div class="relative group">
-                    <button class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
-                        <i class="fa-solid fa-database"></i>
-                    </button>
-                    <div class="absolute left-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-xl py-2 hidden group-hover:block z-50">
-                        <button onclick="exportBackup()" class="w-full text-right px-4 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center space-x-2 space-x-reverse">
-                            <i class="fa-solid fa-download text-brand-400"></i><span data-i18n="exportBackup">تصدير النسخة الاحتياطية</span>
-                        </button>
-                        <label class="w-full text-right px-4 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center space-x-2 space-x-reverse cursor-pointer">
-                            <i class="fa-solid fa-upload text-blue-400"></i><span data-i18n="importBackup">استعادة نسخة احتياطية</span>
-                            <input type="file" id="importFile" accept=".json" class="hidden" onchange="importBackup(event)">
-                        </label>
-                    </div>
+            <div class="sidebar-footer">
+                <div class="company-badge-mini" id="sidebar-company-info">
+                    <span id="mini-comp-name">شركة الإضاءة</span>
+                    <span id="mini-eng-name" class="sub-text">مهندس الإضاءة</span>
                 </div>
             </div>
-        </div>
-        <!-- Mobile Navigation Bar -->
-        <div class="flex md:hidden bg-slate-950 border-t border-slate-800 p-2 justify-around">
-            <button onclick="switchTab('projects')" id="mobile-nav-projects" class="flex-1 py-2 text-center text-xs font-semibold text-brand-400 border-b-2 border-brand-500">
-                <i class="fa-solid fa-diagram-project block mb-1"></i><span data-i18n="tabProjects">المشاريع</span>
-            </button>
-            <button onclick="switchTab('warehouse')" id="mobile-nav-warehouse" class="flex-1 py-2 text-center text-xs font-semibold text-slate-400 border-b-2 border-transparent">
-                <i class="fa-solid fa-warehouse block mb-1"></i><span data-i18n="tabWarehouse">المستودع</span>
-            </button>
-        </div>
-    </header>
+        </aside>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-
-        <!-- TAB 1: PROJECTS LIST -->
-        <section id="tab-content-projects" class="space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/60 p-4 sm:p-6 rounded-2xl border border-slate-800">
-                <div>
-                    <h2 class="text-2xl font-black text-white" data-i18n="projectsTitle">مشاريع الإضاءة</h2>
-                    <p class="text-sm text-slate-400" data-i18n="projectsSubtitle">إدارة وتنظيم كافة الفعاليات والعروض الحية</p>
-                </div>
-                <button onclick="openModal('projectModal')" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm shadow-lg shadow-brand-600/20 transition flex items-center space-x-2 space-x-reverse">
-                    <i class="fa-solid fa-plus"></i>
-                    <span data-i18n="addProjectBtn">إضافة مشروع جديد</span>
-                </button>
-            </div>
-
-            <!-- Search & Filter -->
-            <div class="relative">
-                <i class="fa-solid fa-search absolute right-4 top-3.5 text-slate-500"></i>
-                <input type="text" id="projectSearchInput" oninput="renderProjects()" data-i18n-placeholder="searchProjectsPlaceholder" placeholder="البحث في المشاريع (الاسم، المكان)..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pr-11 pl-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition">
-            </div>
-
-            <!-- Projects Grid -->
-            <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Dynamically Rendered -->
-            </div>
-        </section>
-
-        <!-- TAB 2: WAREHOUSE -->
-        <section id="tab-content-warehouse" class="space-y-6 hidden">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/60 p-4 sm:p-6 rounded-2xl border border-slate-800">
-                <div>
-                    <h2 class="text-2xl font-black text-white" data-i18n="warehouseTitle">مستودع المعدات الرئيسي</h2>
-                    <p class="text-sm text-slate-400" data-i18n="warehouseSubtitle">إدارة الأجهزة والمعدات المتوفرة لديك فعلياً</p>
-                </div>
-                <button onclick="openEquipmentModal()" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm shadow-lg shadow-brand-600/20 transition flex items-center space-x-2 space-x-reverse">
-                    <i class="fa-solid fa-plus"></i>
-                    <span data-i18n="addEquipmentBtn">إضافة معدة للمستودع</span>
-                </button>
-            </div>
-
-            <!-- Search & Filters -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="relative sm:col-span-2">
-                    <i class="fa-solid fa-search absolute right-4 top-3.5 text-slate-500"></i>
-                    <input type="text" id="warehouseSearchInput" oninput="renderWarehouse()" data-i18n-placeholder="searchWarehousePlaceholder" placeholder="ابحث بالاسم، الموديل، الشركة أو النوع..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pr-11 pl-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition">
-                </div>
-                <select id="warehouseTypeFilter" onchange="renderWarehouse()" class="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition">
-                    <option value="" data-i18n="allTypes">جميع الأنواع</option>
-                </select>
-            </div>
-
-            <!-- Warehouse Table -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-right border-collapse">
-                        <thead>
-                            <tr class="bg-slate-950/80 border-b border-slate-800 text-xs text-slate-400 font-bold uppercase tracking-wider">
-                                <th class="p-4" data-i18n="thEquipment">Equipment</th>
-                                <th class="p-4" data-i18n="thBrand">Brand</th>
-                                <th class="p-4" data-i18n="thModel">Model</th>
-                                <th class="p-4" data-i18n="thType">Type</th>
-                                <th class="p-4" data-i18n="thAvailable">Available</th>
-                                <th class="p-4" data-i18n="thNotes">Notes</th>
-                                <th class="p-4 text-center" data-i18n="thActions">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="warehouseTableBody" class="divide-y divide-slate-800 text-sm">
-                            <!-- Dynamically Rendered -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 3: PROJECT DETAIL VIEW -->
-        <section id="tab-content-project-detail" class="space-y-6 hidden">
-            <!-- Back & Header Actions -->
-            <div class="flex items-center justify-between">
-                <button onclick="switchTab('projects')" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-sm font-bold text-slate-300 transition flex items-center space-x-2 space-x-reverse">
-                    <i class="fa-solid fa-arrow-right"></i>
-                    <span data-i18n="backToProjects">العودة للمشاريع</span>
-                </button>
-                <div class="flex items-center space-x-2 space-x-reverse">
-                    <button onclick="openProjectModalForEdit()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-slate-200 transition">
-                        <i class="fa-solid fa-pen-to-square ml-1"></i> <span data-i18n="editProject">تعديل المشروع</span>
-                    </button>
-                    <button onclick="printCurrentVersion()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-brand-400 border border-brand-500/30 transition">
-                        <i class="fa-solid fa-print ml-1"></i> <span data-i18n="printSheet">طباعة / PDF</span>
-                    </button>
-                    <button onclick="duplicateCurrentProject()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-blue-400 transition">
-                        <i class="fa-solid fa-copy ml-1"></i> <span data-i18n="duplicateProject">نسخ المشروع</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Project Info Summary Card -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-2 h-full bg-brand-500"></div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="md:col-span-2">
-                        <span id="detailClientBadge" class="text-xs px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 font-bold border border-brand-500/20 mb-2 inline-block"></span>
-                        <h2 id="detailProjectName" class="text-3xl font-black text-white mb-2"></h2>
-                        <p id="detailProjectNotes" class="text-sm text-slate-400"></p>
-                    </div>
-                    <div class="space-y-2 text-sm border-r border-slate-800 pr-4">
-                        <div class="text-slate-400"><i class="fa-solid fa-location-dot ml-2 text-brand-400"></i><span data-i18n="lblVenue">المكان:</span> <strong id="detailVenue" class="text-white"></strong></div>
-                        <div class="text-slate-400"><i class="fa-solid fa-calendar ml-2 text-brand-400"></i><span data-i18n="lblEventDate">التاريخ:</span> <strong id="detailEventDate" class="text-white"></strong></div>
-                        <div class="text-slate-400"><i class="fa-solid fa-clock ml-2 text-brand-400"></i><span data-i18n="lblEventTime">الوقت:</span> <strong id="detailEventTime" class="text-white"></strong></div>
-                    </div>
-                    <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-center items-center text-center">
-                        <span class="text-xs text-slate-400 uppercase font-bold" data-i18n="totalProjectEquip">إجمالي معدات المشروع</span>
-                        <span id="detailTotalQty" class="text-3xl font-black text-brand-400 my-1">0</span>
-                        <span id="detailTypesCount" class="text-xs text-slate-500">0 أنواع معدات</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Versions Bar -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="flex items-center space-x-3 space-x-reverse overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0" id="versionsTabsContainer">
-                    <!-- Version Buttons Rendered Here -->
-                </div>
-                <div class="flex items-center space-x-2 space-x-reverse w-full sm:w-auto justify-end">
-                    <button onclick="openNewVersionModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow transition flex items-center space-x-1 space-x-reverse">
-                        <i class="fa-solid fa-plus"></i>
-                        <span data-i18n="newVersionBtn">+ نسخة جديدة (Version)</span>
-                    </button>
-                    <button onclick="openAddProjectEquipModal()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition flex items-center space-x-1 space-x-reverse">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                        <span data-i18n="addEquipToProject">+ إضافة معدات للنسخة</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Version Details & Equipment Table -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                <div class="p-4 bg-slate-950/40 border-b border-slate-800 flex justify-between items-center">
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- 1. PROJECTS VIEW -->
+            <section id="projects-view" class="view-section active">
+                <div class="view-header">
                     <div>
-                        <h3 id="currentVersionTitle" class="font-bold text-white text-lg">Version 1</h3>
-                        <p id="currentVersionNotes" class="text-xs text-slate-400"></p>
+                        <h1>إدارة المشاريع</h1>
+                        <p>إنشاء ومتابعة مشاريع الإضاءة وإصداراتها ومعداتها المطلوبة</p>
                     </div>
-                    <div class="flex items-center space-x-2 space-x-reverse">
-                        <button onclick="editCurrentVersionMeta()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
-                            <i class="fa-solid fa-pen ml-1"></i> <span data-i18n="editVersion">تعديل النسخة</span>
-                        </button>
-                        <button onclick="deleteCurrentVersion()" class="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition">
-                            <i class="fa-solid fa-trash ml-1"></i> <span data-i18n="deleteVersion">حذف النسخة</span>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" id="open-add-project-modal">
+                            <i class="fa-solid fa-plus"></i> مشروع جديد
                         </button>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-right border-collapse">
+                <div class="search-filter-bar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="project-search" placeholder="بحث عن مشروع أو موقع...">
+                    </div>
+                </div>
+
+                <div id="projects-grid" class="cards-grid">
+                    <!-- Cards will be injected via JS -->
+                </div>
+            </section>
+
+            <!-- 2. WAREHOUSE VIEW -->
+            <section id="warehouse-view" class="view-section">
+                <div class="view-header">
+                    <div>
+                        <h1>مستودع المعدات</h1>
+                        <p>قائمة جميع معدات الإضاءة المتاحة للشركة</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" id="open-add-equipment-modal">
+                            <i class="fa-solid fa-plus"></i> إضافة معدة جديدة
+                        </button>
+                    </div>
+                </div>
+
+                <div class="search-filter-bar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="warehouse-search" placeholder="بحث باسم المعدة، الموديل، النوع...">
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
                         <thead>
-                            <tr class="bg-slate-950/80 border-b border-slate-800 text-xs text-slate-400 font-bold uppercase tracking-wider">
-                                <th class="p-4" data-i18n="thEquipment">Equipment</th>
-                                <th class="p-4" data-i18n="thBrand">Brand</th>
-                                <th class="p-4" data-i18n="thModel">Model</th>
-                                <th class="p-4" data-i18n="thType">Type</th>
-                                <th class="p-4" data-i18n="thRequired">Required</th>
-                                <th class="p-4" data-i18n="thWarehouseAvailable">Warehouse</th>
-                                <th class="p-4" data-i18n="thShortage">Shortage</th>
-                                <th class="p-4" data-i18n="thStatus">Status</th>
-                                <th class="p-4" data-i18n="thNotes">Notes</th>
-                                <th class="p-4 text-center" data-i18n="thActions">Actions</th>
+                            <tr>
+                                <th>اسم المعدة</th>
+                                <th>الشركة المصنعة</th>
+                                <th>الموديل</th>
+                                <th>النوع</th>
+                                <th>الكمية المتوفرة</th>
+                                <th>ملاحظات</th>
+                                <th>الإجراءات</th>
                             </tr>
                         </thead>
-                        <tbody id="projectEquipmentTableBody" class="divide-y divide-slate-800 text-sm">
-                            <!-- Dynamically Rendered -->
+                        <tbody id="warehouse-table-body">
+                            <!-- Rows injected via JS -->
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </section>
+                <!-- Mobile Card list for warehouse -->
+                <div id="warehouse-mobile-cards" class="mobile-cards-list mobile-only"></div>
+            </section>
 
-    </main>
+            <!-- 3. BACKUP & RESTORE VIEW -->
+            <section id="backup-view" class="view-section">
+                <div class="view-header">
+                    <div>
+                        <h1>النسخ الاحتياطي والاستعادة</h1>
+                        <p>حفظ نسخة من بياناتك أو استعادتها لضمان عدم فقدانها</p>
+                    </div>
+                </div>
 
-    <!-- FOOTER -->
-    <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
-        StageLight Pro &copy; 2026 — Professional Event Lighting Management Tool
-    </footer>
+                <div class="backup-cards-grid">
+                    <div class="panel-card">
+                        <div class="panel-icon"><i class="fa-solid fa-download"></i></div>
+                        <h3>إنشاء نسخة احتياطية (Backup)</h3>
+                        <p>تنزيل ملف JSON يحتوي على كافة المشاريع، الإصدارات، المعدات وإعدادات الشركة.</p>
+                        <button class="btn btn-primary" id="create-backup-btn">
+                            <i class="fa-solid fa-file-arrow-down"></i> تنزيل نسخة احتياطية
+                        </button>
+                    </div>
+
+                    <div class="panel-card">
+                        <div class="panel-icon"><i class="fa-solid fa-upload"></i></div>
+                        <h3>استعادة نسخة احتياطية (Restore)</h3>
+                        <p>استرجاع البيانات من ملف نسخة احتياطية سابق. (تحذير: سيتم استبدال البيانات الحالية)</p>
+                        <input type="file" id="restore-file-input" accept=".json" style="display: none;">
+                        <button class="btn btn-secondary" id="trigger-restore-btn">
+                            <i class="fa-solid fa-file-arrow-up"></i> اختيار ملف واستعادة
+                        </button>
+                    </div>
+                </div>
+
+                <div class="storage-warning-box">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div>
+                        <strong>تنبيه هامة حول التخزين المحلي:</strong>
+                        <p>يتم تخزين بيانات البرنامج داخل متصفحك (LocalStorage). نوصي بأخذ نسخة احتياطية دورياً لتجنب فقدان البيانات عند مسح بيانات المتصفح.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. SETTINGS VIEW -->
+            <section id="settings-view" class="view-section">
+                <div class="view-header">
+                    <div>
+                        <h1>إعدادات الشركة والمهندس</h1>
+                        <p>تخصيص بيانات الشركة وشعارها واسم مهندس الإضاءة لتظهر في ملفات PDF والطباعة</p>
+                    </div>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="panel-card">
+                        <h3><i class="fa-solid fa-building"></i> بيانات الشركة</h3>
+                        <form id="company-settings-form">
+                            <div class="form-group">
+                                <label>اسم الشركة (عربي)</label>
+                                <input type="text" id="comp-name" required placeholder="مثال: مؤسسة الإضاءة الاحترافية">
+                            </div>
+                            <div class="form-group">
+                                <label>اسم الشركة (إنجليزي - اختياري)</label>
+                                <input type="text" id="comp-name-en" placeholder="Professional Lighting Est">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>رقم الهاتف</label>
+                                    <input type="text" id="comp-phone" placeholder="+966 50 000 0000">
+                                </div>
+                                <div class="form-group">
+                                    <label>البريد الإلكتروني</label>
+                                    <input type="email" id="comp-email" placeholder="info@lighting.com">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>الموقع الإلكتروني</label>
+                                <input type="text" id="comp-website" placeholder="www.lighting.com">
+                            </div>
+                            <div class="form-group">
+                                <label>العنوان</label>
+                                <input type="text" id="comp-address" placeholder="الرياض، المملكة العربية السعودية">
+                            </div>
+
+                            <h3 class="mt-4"><i class="fa-solid fa-user-gear"></i> بيانات مهندس الإضاءة</h3>
+                            <div class="form-group">
+                                <label>اسم مهندس الإضاءة</label>
+                                <input type="text" id="eng-name" required placeholder="مثال: أحمد محمد">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>المسمى الوظيفي</label>
+                                    <input type="text" id="eng-title" placeholder="Senior Lighting Designer">
+                                </div>
+                                <div class="form-group">
+                                    <label>رقم الهاتف</label>
+                                    <input type="text" id="eng-phone" placeholder="+966 5xxxxxxxx">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>البريد الإلكتروني للمهندس</label>
+                                <input type="email" id="eng-email" placeholder="engineer@lighting.com">
+                            </div>
+
+                            <button type="submit" class="btn btn-primary mt-3">
+                                <i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="panel-card">
+                        <h3><i class="fa-solid fa-image"></i> شعار الشركة (Logo)</h3>
+                        <div class="logo-upload-container">
+                            <div class="logo-preview-box" id="logo-preview-box">
+                                <i class="fa-solid fa-image placeholder-icon"></i>
+                                <span id="logo-placeholder-text">لا يوجد شعار</span>
+                            </div>
+                            <div class="logo-actions">
+                                <input type="file" id="logo-file-input" accept="image/*" style="display: none;">
+                                <button type="button" class="btn btn-secondary" id="upload-logo-btn">
+                                    <i class="fa-solid fa-upload"></i> رفع شعار جديد
+                                </button>
+                                <button type="button" class="btn btn-danger" id="delete-logo-btn">
+                                    <i class="fa-solid fa-trash"></i> حذف الشعار
+                                </button>
+                            </div>
+                            <p class="sub-text mt-2">يُفضل استخدام شعار بخلفية شفافة PNG وبنسبة أبعاد مناسبة.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. PROJECT DETAILS VIEW (Hidden by default) -->
+            <section id="project-details-view" class="view-section">
+                <div class="back-nav">
+                    <button class="btn btn-secondary" id="back-to-projects">
+                        <i class="fa-solid fa-arrow-right"></i> العودة للمشاريع
+                    </button>
+                </div>
+
+                <div class="project-details-header panel-card">
+                    <div class="project-info-main">
+                        <h2 id="det-proj-name">اسم المشروع</h2>
+                        <p id="det-proj-venue"><i class="fa-solid fa-location-dot"></i> الموقع</p>
+                        <div class="project-badges">
+                            <span class="badge" id="det-proj-date"><i class="fa-solid fa-calendar"></i> التاريخ</span>
+                            <span class="badge badge-accent" id="det-proj-version-badge">الإصدار: v1</span>
+                        </div>
+                    </div>
+                    <div class="project-actions-top">
+                        <button class="btn btn-primary" id="open-versions-modal">
+                            <i class="fa-solid fa-code-branch"></i> إدارة الإصدارات (<span id="versions-count-lbl">1</span>)
+                        </button>
+                        <button class="btn btn-success" id="open-add-proj-equip-modal">
+                            <i class="fa-solid fa-plus"></i> إضافة معدة للمشروع
+                        </button>
+                        <button class="btn btn-secondary" id="print-preview-btn">
+                            <i class="fa-solid fa-print"></i> معاينة وطباعة / PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Project Summary Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-title">أنواع المعدات</div>
+                        <div class="stat-value" id="stat-equip-types">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">إجمالي المطلوب</div>
+                        <div class="stat-value" id="stat-total-req">0</div>
+                    </div>
+                    <div class="stat-card stat-alert">
+                        <div class="stat-title">إجمالي النقص</div>
+                        <div class="stat-value" id="stat-total-short">0</div>
+                    </div>
+                </div>
+
+                <!-- Project Equipment Table -->
+                <div class="panel-card mt-4">
+                    <div class="card-header-flex">
+                        <h3><i class="fa-solid fa-boxes-stacked"></i> معدات الإصدار الحالي</h3>
+                        <div class="search-box small-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="project-equip-search" placeholder="بحث في المعدات...">
+                        </div>
+                    </div>
+                    
+                    <div class="table-container mt-3">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>المعدة</th>
+                                    <th>الشركة</th>
+                                    <th>الموديل</th>
+                                    <th>النوع</th>
+                                    <th>المتوفر بالمستودع</th>
+                                    <th>الكمية المطلوبة</th>
+                                    <th>النقص</th>
+                                    <th>ملاحظات</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="project-equip-table-body">
+                                <!-- Injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="project-equip-mobile-cards" class="mobile-cards-list mobile-only mt-3"></div>
+                </div>
+            </section>
+
+        </main>
+    </div>
 
     <!-- MODALS -->
 
-    <!-- 1. Project Add/Edit Modal -->
-    <div id="projectModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
-            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                <h3 id="projectModalTitle" class="font-bold text-lg text-white" data-i18n="modalAddProject">إضافة مشروع جديد</h3>
-                <button onclick="closeModal('projectModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+    <!-- Modal: Add/Edit Project -->
+    <div id="project-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="project-modal-title">مشروع جديد</h3>
+                <button class="close-modal icon-btn"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <form id="projectForm" onsubmit="saveProject(event)" class="p-6 space-y-4">
-                <input type="hidden" id="projectId">
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblProjectName">اسم المشروع *</label>
-                    <input type="text" id="projName" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+            <form id="project-form">
+                <input type="hidden" id="project-id">
+                <div class="form-group">
+                    <label>اسم المشروع *</label>
+                    <input type="text" id="p-name" required placeholder="مثال: حفل افتتاح المهرجان">
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblClientName">اسم العميل (اختياري)</label>
-                        <input type="text" id="projClient" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>اسم العميل (اختياري)</label>
+                        <input type="text" id="p-client" placeholder="مثال: شركة الفعاليات الكبرى">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblVenue">مكان الفعالية *</label>
-                        <input type="text" id="projVenue" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblEventDate">تاريخ الفعالية *</label>
-                        <input type="date" id="projDate" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblEventTime">وقت الفعالية</label>
-                        <input type="time" id="projTime" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblSetupDate">تاريخ التركيب</label>
-                        <input type="date" id="projSetupDate" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                    <div class="form-group">
+                        <label>موقع الفعالية (Venue) *</label>
+                        <input type="text" id="p-venue" required placeholder="مثال: قاعة الاحتفالات الكبرى - الرياض">
                     </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblNotes">ملاحظات عامة</label>
-                    <textarea id="projNotes" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500"></textarea>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>تاريخ الفعالية *</label>
+                        <input type="date" id="p-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>وقت الفعالية (اختياري)</label>
+                        <input type="time" id="p-time">
+                    </div>
                 </div>
-                <div class="flex justify-end space-x-3 space-x-reverse pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeModal('projectModal')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-slate-300" data-i18n="btnCancel">إلغاء</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-sm font-bold text-white shadow" data-i18n="btnSaveProject">حفظ المشروع</button>
+                <div class="form-group">
+                    <label>تاريخ التجهيز (اختياري)</label>
+                    <input type="date" id="p-setup-date">
+                </div>
+                <div class="form-group">
+                    <label>ملاحظات</label>
+                    <textarea id="p-notes" rows="3" placeholder="ملاحظات إضافية حول المشروع..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal-btn">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ المشروع</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 2. Equipment Add/Edit Modal -->
-    <div id="equipmentModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
-            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                <h3 id="equipmentModalTitle" class="font-bold text-lg text-white" data-i18n="modalAddEquip">إضافة معدة للمستودع</h3>
-                <button onclick="closeModal('equipmentModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+    <!-- Modal: Add/Edit Warehouse Equipment -->
+    <div id="equipment-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="equipment-modal-title">إضافة معدة للمستودع</h3>
+                <button class="close-modal icon-btn"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <form id="equipmentForm" onsubmit="saveEquipment(event)" class="p-6 space-y-4">
-                <input type="hidden" id="equipId">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblEquipName">اسم الجهاز / المعدة *</label>
-                        <input type="text" id="eqName" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500" placeholder="مثال: Shark Beam 450">
+            <form id="equipment-form">
+                <input type="hidden" id="eq-id">
+                <div class="form-group">
+                    <label>اسم المعدة *</label>
+                    <input type="text" id="eq-name" required placeholder="مثال: Sharpy Beam 230W">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>الشركة المصنعة *</label>
+                        <input type="text" id="eq-brand" required placeholder="مثال: Clay Paky">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblBrand">الشركة المصنعة (Brand)</label>
-                        <input type="text" id="eqBrand" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500" placeholder="مثال: Light Sky">
+                    <div class="form-group">
+                        <label>الموديل *</label>
+                        <input type="text" id="eq-model" required placeholder="مثال: OSRAM 230">
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblModel">الموديل</label>
-                        <input type="text" id="eqModel" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500" placeholder="450W">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>نوع المعدة *</label>
+                        <input type="text" id="eq-type" required placeholder="مثال: Moving Head / LED / Controller">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblType">النوع *</label>
-                        <input type="text" id="eqType" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500" placeholder="Beam, Wash, PAR...">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblQuantity">الكمية المتوفرة *</label>
-                        <input type="number" id="eqQty" min="0" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500" placeholder="21">
+                    <div class="form-group">
+                        <label>الكمية المتوفرة بالمستودع *</label>
+                        <input type="number" id="eq-available" min="0" required placeholder="20">
                     </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblNotes">ملاحظات المستودع</label>
-                    <textarea id="eqNotes" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500"></textarea>
+                <div class="form-group">
+                    <label>ملاحظات</label>
+                    <textarea id="eq-notes" rows="2" placeholder="ملاحظات حول الحالة أو الإكسسوارات..."></textarea>
                 </div>
-                <div class="flex justify-end space-x-3 space-x-reverse pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeModal('equipmentModal')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-slate-300" data-i18n="btnCancel">إلغاء</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-sm font-bold text-white shadow" data-i18n="btnSaveEquip">حفظ المعدة</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal-btn">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ المعدة</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 3. Add Warehouse Equipment to Project Modal -->
-    <div id="addProjectEquipModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                <h3 class="font-bold text-lg text-white" data-i18n="modalAddProjEquip">إضافة معدة للمشروع من المستودع</h3>
-                <button onclick="closeModal('addProjectEquipModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+    <!-- Modal: Add Equipment to Project -->
+    <div id="project-equipment-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>إضافة معدة إلى المشروع</h3>
+                <button class="close-modal icon-btn"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <form id="addProjectEquipForm" onsubmit="confirmAddEquipmentToProject(event)" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblSelectEquip">اختر المعدة *</label>
-                    <select id="selectWarehouseItem" onchange="onWarehouseItemSelected()" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
-                        <!-- Populated dynamically -->
+            <form id="project-equipment-form">
+                <input type="hidden" id="proj-eq-edit-index" value="-1">
+                <div class="form-group">
+                    <label>اختر المعدة من المستودع *</label>
+                    <select id="select-warehouse-eq" required class="form-control">
+                        <option value="">-- اختر المعدة --</option>
                     </select>
                 </div>
-                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs flex justify-between">
-                    <span class="text-slate-400" data-i18n="lblAvailableInWarehouse">الكمية المتوفرة في المستودع:</span>
-                    <strong id="modalAvailableQtyDisplay" class="text-brand-400 text-sm">0</strong>
+                <div class="form-group">
+                    <label>الكمية المطلوبة (Required) *</label>
+                    <input type="number" id="proj-eq-required" min="1" required placeholder="مثال: 12">
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblRequiredQty">الكمية المطلوبة للمشروع *</label>
-                    <input type="number" id="projEquipReqQty" min="1" required oninput="checkQuantityWarning()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
-                    <p id="quantityWarningMsg" class="text-xs text-red-400 mt-1 hidden"></p>
+                <div class="form-group">
+                    <label>ملاحظات مخصصة للمعدة في هذا المشروع</label>
+                    <input type="text" id="proj-eq-notes" placeholder="مثال: توزع على التراس العلوي">
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblProjectEquipNotes">ملاحظات خاصة بالمشروع (اختياري)</label>
-                    <input type="text" id="projEquipNotes" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500" placeholder="مثال: Main Truss / Stage Left">
-                </div>
-                <div class="flex justify-end space-x-3 space-x-reverse pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeModal('addProjectEquipModal')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-slate-300" data-i18n="btnCancel">إلغاء</button>
-                    <button type="submit" id="addProjEquipSubmitBtn" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-sm font-bold text-white shadow" data-i18n="btnAdd">إضافة</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal-btn">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة للمشروع</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 4. New Version Modal -->
-    <div id="newVersionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                <h3 class="font-bold text-lg text-white" data-i18n="modalNewVersion">إنشاء نسخة جديدة (Version)</h3>
-                <button onclick="closeModal('newVersionModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+    <!-- Modal: Versions Management -->
+    <div id="versions-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>إدارة إصدارات المشروع (Versions)</h3>
+                <button class="close-modal icon-btn"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <form onsubmit="createNewVersion(event)" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblVersionName">اسم النسخة / الوصف *</label>
-                    <input type="text" id="newVersionNameInput" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500" placeholder="مثال: Final Equipment List">
+            <div class="versions-content">
+                <div class="create-version-box">
+                    <h4>إنشاء إصدار جديد (Snapshot)</h4>
+                    <form id="create-version-form" class="inline-form">
+                        <input type="text" id="new-version-name" required placeholder="اسم الإصدار (مثال: النسخة النهائية للتراس)">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-code-branch"></i> إنشاء إصدار جديد
+                        </button>
+                    </form>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblNotes">ملاحظات النسخة</label>
-                    <textarea id="newVersionNotesInput" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500" placeholder="تعديل Beam وتغيير التوزيع..."></textarea>
-                </div>
-                <div class="flex justify-end space-x-3 space-x-reverse pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeModal('newVersionModal')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-slate-300" data-i18n="btnCancel">إلغاء</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-sm font-bold text-white shadow" data-i18n="btnCreate">إنشاء</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
-    <!-- 5. Edit Version Meta Modal -->
-    <div id="editVersionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                <h3 class="font-bold text-lg text-white" data-i18n="modalEditVersion">تعديل معلومات النسخة</h3>
-                <button onclick="closeModal('editVersionModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <div class="table-container mt-4">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>رقم الإصدار</th>
+                                <th>اسم الإصدار</th>
+                                <th>تاريخ الإنشاء</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="versions-table-body">
+                            <!-- Injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <form onsubmit="saveEditedVersionMeta(event)" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblVersionName">اسم النسخة *</label>
-                    <input type="text" id="editVersionNameInput" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 mb-1" data-i18n="lblNotes">ملاحظات النسخة</label>
-                    <textarea id="editVersionNotesInput" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500"></textarea>
-                </div>
-                <div class="flex justify-end space-x-3 space-x-reverse pt-4 border-t border-slate-800">
-                    <button type="button" onclick="closeModal('editVersionModal')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold text-slate-300" data-i18n="btnCancel">إلغاء</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-sm font-bold text-white shadow" data-i18n="btnSave">حفظ</button>
-                </div>
-            </form>
         </div>
     </div>
 
-    <!-- PRINT PREVIEW CONTAINER (Hidden from UI, used for exact A4 Print/PDF output) -->
-    <div id="printArea" class="hidden"></div>
+    <!-- PRINT / PDF PREVIEW MODAL -->
+    <div id="print-preview-modal" class="print-preview-modal">
+        <div class="print-preview-toolbar">
+            <div class="preview-title">
+                <i class="fa-solid fa-file-pdf"></i> معاينة مستند المشروع (A4 Print Preview)
+            </div>
+            <div class="preview-actions">
+                <button class="btn btn-secondary" id="close-preview-btn">
+                    <i class="fa-solid fa-xmark"></i> إغلاق المعاينة
+                </button>
+                <button class="btn btn-success" id="print-doc-btn">
+                    <i class="fa-solid fa-print"></i> طباعة مباشرة
+                </button>
+                <button class="btn btn-primary" id="download-pdf-btn">
+                    <i class="fa-solid fa-download"></i> تصدير PDF
+                </button>
+            </div>
+        </div>
+        <div class="print-preview-body">
+            <!-- A4 Document Template -->
+            <div id="a4-document" class="a4-page">
+                <!-- Header -->
+                <div class="a4-header">
+                    <div class="a4-company-info">
+                        <h1 id="pdf-comp-name">اسم الشركة</h1>
+                        <p id="pdf-comp-details">الهاتف | البريد | العنوان</p>
+                    </div>
+                    <div class="a4-logo-box" id="pdf-logo-container">
+                        <!-- Logo or placeholder -->
+                    </div>
+                </div>
 
-    <!-- Scripts -->
+                <div class="a4-divider"></div>
+
+                <!-- Document Title -->
+                <div class="a4-doc-title">
+                    <h2>تقرير معدات مشروع إضاءة</h2>
+                    <span id="pdf-version-tag">الإصدار: v1</span>
+                </div>
+
+                <!-- Project Meta Grid -->
+                <div class="a4-meta-grid">
+                    <div class="a4-meta-item">
+                        <strong>اسم المشروع:</strong> <span id="pdf-proj-name">-</span>
+                    </div>
+                    <div class="a4-meta-item">
+                        <strong>اسم العميل:</strong> <span id="pdf-proj-client">-</span>
+                    </div>
+                    <div class="a4-meta-item">
+                        <strong>موقع الفعالية (Venue):</strong> <span id="pdf-proj-venue">-</span>
+                    </div>
+                    <div class="a4-meta-item">
+                        <strong>تاريخ الفعالية:</strong> <span id="pdf-proj-date">-</span>
+                    </div>
+                    <div class="a4-meta-item">
+                        <strong>وقت الفعالية:</strong> <span id="pdf-proj-time">-</span>
+                    </div>
+                    <div class="a4-meta-item">
+                        <strong>تاريخ التجهيز:</strong> <span id="pdf-proj-setup">-</span>
+                    </div>
+                    <div class="a4-meta-item">
+                        <strong>مهندس الإضاءة:</strong> <span id="pdf-eng-name">-</span>
+                    </div>
+                    <div class="a4-meta-item">
+                        <strong>تاريخ الإصدار:</strong> <span id="pdf-gen-date">-</span>
+                    </div>
+                </div>
+
+                <!-- Notes if available -->
+                <div class="a4-notes-box" id="pdf-notes-section" style="display: none;">
+                    <strong>ملاحظات المشروع:</strong>
+                    <p id="pdf-proj-notes"></p>
+                </div>
+
+                <!-- Equipment Table -->
+                <div class="a4-table-wrapper mt-3">
+                    <table class="a4-table">
+                        <thead>
+                            <tr>
+                                <th>المعدة (Equipment)</th>
+                                <th>الشركة (Brand)</th>
+                                <th>الموديل (Model)</th>
+                                <th>النوع (Type)</th>
+                                <th>المتوفر (Avail)</th>
+                                <th>المطلوب (Req)</th>
+                                <th>النقص (Short)</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pdf-table-body">
+                            <!-- Injected -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer -->
+                <div class="a4-footer">
+                    <div class="footer-left">
+                        <span id="pdf-footer-comp">اسم الشركة</span> | مهندس الإضاءة: <span id="pdf-footer-eng">اسم المهندس</span>
+                    </div>
+                    <div class="footer-right">
+                        صفحة <span class="page-num">1</span> من <span class="total-pages">1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>تأكيد الإجراء</h3>
+                <button class="close-modal icon-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body-text">
+                <p id="confirm-message">هل أنت متأكد من تنفيذ هذا الإجراء؟</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="confirm-no-btn">إلغاء</button>
+                <button type="button" class="btn btn-danger" id="confirm-yes-btn">تأكيد وحذف</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <i id="toast-icon" class="fa-solid fa-circle-check"></i>
+        <span id="toast-message">تمت العملية بنجاح</span>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
