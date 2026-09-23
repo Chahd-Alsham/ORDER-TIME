@@ -1,138 +1,24 @@
-document.addEventListener("DOMContentLoaded", () => {
-    localStorage.removeItem("LightingManager_Data"); // أضف هذا السطر مؤقتاً لمسح الذاكرة القديمة
-    loadData();
-    initNavigation();
-    initEventListeners();
-    renderProjects();
-    renderWarehouse();
-    updateSidebarCompanyInfo();
-    fillCompanySettingsForm();
-});
 /* ==========================================
    Lighting Manager - Professional JavaScript
    ========================================== */
 
-// Default Data Structure State
+// Default Data Structure State (المعدات الافتراضية لشركة لايت سكاي)
 let appData = {
     projects: [],
-warehouseEquipment: [
-        {
-            id: "EQ_LS_1",
-            name: "Beam F450",
-            brand: "Light Sky",
-            model: "Beam F450",
-            type: "Beam Moving Head",
-            available: 100,
-            notes: "إضاءة بيم قوية واحترافية عالية الأداء"
-        },
-        {
-            id: "EQ_LS_2",
-            name: "Wash 1920 Zoom",
-            brand: "Light Sky",
-            model: "Wash 1920 Zoom",
-            type: "LED Wash Zoom",
-            available: 40,
-            notes: "إضاءة غسيل متحركة مع خاصية الزوم"
-        },
-        {
-            id: "EQ_LS_3",
-            name: "Wash 1940 Zoom",
-            brand: "Light Sky",
-            model: "Wash 1940 Zoom",
-            type: "LED Wash Zoom",
-            available: 30,
-            notes: "إضاءة غسيل متحركة عالية الطاقة مع زوم واسع"
-        },
-        {
-            id: "EQ_LS_4",
-            name: "Aurora Spot",
-            brand: "Light Sky",
-            model: "Aurora Spot",
-            type: "Spot Moving Head",
-            available: 60,
-            notes: "سبوت متحرك مع تأثيرات جوبو وبريزم متقدمة"
-        },
-        {
-            id: "EQ_LS_5",
-            name: "LED Bar",
-            brand: "Light Sky",
-            model: "LED Bar Standard",
-            type: "LED Bar",
-            available: 300,
-            notes: "شريط إضاءة ليد جداري وديكوري"
-        },
-        {
-            id: "EQ_LS_6",
-            name: "LED Bar Battery",
-            brand: "Light Sky",
-            model: "Wireless Battery LED Bar",
-            type: "Battery LED Bar",
-            available: 60,
-            notes: "شريط إضاءة ليد لاسلكي يعمل ببطارية قابلة للشحن"
-        },
-        {
-            id: "EQ_LS_7",
-            name: "City Color",
-            brand: "Light Sky",
-            model: "City Color Architectural",
-            type: "Architectural Light",
-            available: 170,
-            notes: "إضاءة معمارية خارجية غامرة للواجهات والمباني"
-        },
-        {
-            id: "EQ_LS_8",
-            name: "Strobe Pixel",
-            brand: "Light Sky",
-            model: "Pixel Strobe",
-            type: "Strobe / Blinder",
-            available: 37,
-            notes: "ستروب فلاش إلكتروني مع تحكم بالبكسل"
-        },
-        {
-            id: "EQ_LS_9",
-            name: "Blinder RGBW",
-            brand: "Light Sky",
-            model: "RGBW Blinder",
-            type: "Blinder",
-            available: 24,
-            notes: "بلايندر إضاءة المسارح بألوان RGBW المتعددة"
-        },
-        {
-            id: "EQ_LS_10",
-            name: "Kinetic Ball",
-            brand: "Light Sky",
-            model: "Kinetic LED Ball",
-            type: "Kinetic System",
-            available: 200,
-            notes: "كرات حركية متحركة مضيئة بنظام الونش"
-        },
-        {
-            id: "EQ_LS_11",
-            name: "LED Par 1M",
-            brand: "Light Sky",
-            model: "LED Par 1M",
-            type: "LED Par",
-            available: 30,
-            notes: "إضاءة بار ليد مسرحية وتدشينات"
-        },
-        {
-            id: "EQ_LS_12",
-            name: "Eurotruss  1M",
-            brand: "Light Sky",
-            model: "Eurotruss 1M Segment",
-            type: "Rigging / Truss",
-            available: 1000,
-            notes: "هياكل حديدية/ألومنيوم تروس بطول 1 متر"
-        },
-        {
-            id: "EQ_LS_13",
-            name: "Motor Chain",
-            brand: "Light Sky",
-            model: "Electric Chain Hoist",
-            type: "Rigging Motor",
-            available: 100,
-            notes: "موتور زنجير كهربائي لرفع الأحمال والتروس"
-        }
+    warehouseEquipment: [
+        { id: "EQ_LS_1", name: "Beam F450", brand: "Light Sky", model: "Beam F450", type: "Beam Moving Head", available: 100, notes: "إضاءة بيم قوية واحترافية عالية الأداء" },
+        { id: "EQ_LS_2", name: "Wash 1920 Zoom", brand: "Light Sky", model: "Wash 1920 Zoom", type: "LED Wash Zoom", available: 40, notes: "إضاءة غسيل متحركة مع خاصية الزوم" },
+        { id: "EQ_LS_3", name: "Wash 1940 Zoom", brand: "Light Sky", model: "Wash 1940 Zoom", type: "LED Wash Zoom", available: 30, notes: "إضاءة غسيل متحركة عالية الطاقة مع زوم واسع" },
+        { id: "EQ_LS_4", name: "Aurora Spot", brand: "Light Sky", model: "Aurora Spot", type: "Spot Moving Head", available: 60, notes: "سبوت متحرك مع تأثيرات جوبو وبريزم متقدمة" },
+        { id: "EQ_LS_5", name: "LED Bar", brand: "Light Sky", model: "LED Bar Standard", type: "LED Bar", available: 200, notes: "شريط إضاءة ليد جداري وديكوري" },
+        { id: "EQ_LS_6", name: "LED Bar Battery", brand: "Light Sky", model: "Wireless Battery LED Bar", type: "Battery LED Bar", available: 40, notes: "شريط إضاءة ليد لاسلكي يعمل ببطارية قابلة للشحن" },
+        { id: "EQ_LS_7", name: "City Color", brand: "Light Sky", model: "City Color Architectural", type: "Architectural Light", available: 170, notes: "إضاءة معمارية خارجية غامرة للواجهات والمباني" },
+        { id: "EQ_LS_8", name: "Strobe Pixel", brand: "Light Sky", model: "Pixel Strobe", type: "Strobe / Blinder", available: 37, notes: "ستروب فلاش إلكتروني مع تحكم بالبكسل" },
+        { id: "EQ_LS_9", name: "Blinder RGBW", brand: "Light Sky", model: "RGBW Blinder", type: "Blinder", available: 40, notes: "بلايندر إضاءة المسارح بألوان RGBW المتعددة" },
+        { id: "EQ_LS_10", name: "Kinetic Ball", brand: "Light Sky", model: "Kinetic LED Ball", type: "Kinetic System", available: 200, notes: "كرات حركية متحركة مضيئة بنظام الونش" },
+        { id: "EQ_LS_11", name: "LED Par 1M", brand: "Light Sky", model: "LED Par 1M", type: "LED Par", available: 30, notes: "إضاءة بار ليد مسرحية وتدشينات" },
+        { id: "EQ_LS_12", name: "Truss Euro 1M", brand: "Light Sky", model: "Eurotruss 1M Segment", type: "Rigging / Truss", available: 1000, notes: "هياكل حديدية/ألومنيوم تروس بطول 1 متر" },
+        { id: "EQ_LS_13", name: "Motor Chain", brand: "Light Sky", model: "Electric Chain Hoist", type: "Rigging Motor", available: 200, notes: "موتور زنجير كهربائي لرفع الأحمال والتروس" }
     ],
     companySettings: {
         name: "مؤسسة الإضاءة الاحترافية",
@@ -169,17 +55,28 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ==========================================
-   LocalStorage Management
+   LocalStorage Management (محسنة لتثبيت البيانات)
    ========================================== */
 function loadData() {
-    const saved = localStorage.getItem("LightingManager_Data");
-    if (saved) {
-        try {
+    try {
+        const saved = localStorage.getItem("LightingManager_Data");
+        if (saved) {
             const parsed = JSON.parse(saved);
-            appData = { ...appData, ...parsed };
-        } catch (e) {
-            console.error("Error parsing LocalStorage data:", e);
+            // الدمج الذكي: نحافظ على المشاريع وإعدادات المستخدم، ونضمن عدم تدبيل معدات المستودع
+            appData.projects = parsed.projects || [];
+            appData.warehouseEquipment = parsed.warehouseEquipment && parsed.warehouseEquipment.length > 0 
+                ? parsed.warehouseEquipment 
+                : appData.warehouseEquipment;
+            
+            if (parsed.companySettings) appData.companySettings = { ...appData.companySettings, ...parsed.companySettings };
+            if (parsed.engineerSettings) appData.engineerSettings = { ...appData.engineerSettings, ...parsed.engineerSettings };
+            if (parsed.appSettings) appData.appSettings = { ...appData.appSettings, ...parsed.appSettings };
+        } else {
+            // إذا لم تكن هناك بيانات مخزنة مسبقاً، قم بحفظ المعدات الافتراضية لأول مرة
+            saveData();
         }
+    } catch (e) {
+        console.error("Error loading data from LocalStorage:", e);
     }
 }
 
@@ -188,7 +85,7 @@ function saveData() {
         localStorage.setItem("LightingManager_Data", JSON.stringify(appData));
     } catch (e) {
         console.error("Error saving to LocalStorage:", e);
-        showToast("خطأ في حفظ البيانات محلياً", "error");
+        showToast("خطأ في حفظ البيانات محلياً في المتصفح", "error");
     }
 }
 
