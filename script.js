@@ -973,7 +973,7 @@ function generatePrintPreviewContent() {
                     <td style="padding: 12px 10px !important; color: #4a5568 !important; text-align: left !important; font-size: 10.5px !important;">${brand}</td>
                     <td style="padding: 12px 10px !important; color: #4a5568 !important; text-align: left !important; font-size: 10.5px !important;">${model}</td>
                     <td style="padding: 12px 10px !important; color: #4a5568 !important; text-align: left !important; font-size: 10.5px !important;">${type}</td>
-                    <td style="padding: 12px 10px !important; text-align: center !important; font-weight: 800 !important; color: #1a202c !important; font-size: 12px !important;">${required}</td>
+                    <td style="padding: 12px 10px !important; text-align: center !important; font-weight: 800 !important; color: #15803d !important; background: transparent !important; font-size: 12px !important;">${required}</td>
                 </tr>
             `;
         });
@@ -1042,7 +1042,7 @@ function generatePrintPreviewContent() {
                     <span style="font-size: 9.5px !important; color: #718096 !important; font-weight: 700 !important;">Approved Version Manifest</span>
                 </div>
 
-                <table style="width: 100% !important; border-collapse: collapse !important; font-size: 10.5px !important;">
+                <table dir="ltr" style="width: 100% !important; border-collapse: collapse !important; font-size: 10.5px !important; direction: ltr !important;">
                     <thead>
                         <tr style="background: #edf2f7 !important; color: #2b6cb0 !important; border-bottom: 2.5px solid #cbd5e0 !important;">
                             <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Fixture</th>
