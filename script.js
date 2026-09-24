@@ -1014,10 +1014,6 @@ function generatePrintPreviewContent() {
             <!-- SECONDARY METADATA GRID -->
             <div style="display: flex !important; gap: 8px !important; margin-bottom: 18px !important;">
                 <div style="flex: 1 !important; background: #f7fafc !important; padding: 7px 10px !important; border-radius: 5px !important; border: 1px solid #e2e8f0 !important; text-align: left !important;">
-                    <span style="color: #718096 !important; display: block !important; font-size: 8.5px !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 2px !important;">Version:</span>
-                    <strong style="color: #3182ce !important; font-size: 10.5px !important; font-weight: 800 !important;">${currentVer.versionName} (v${currentVer.versionNumber})</strong>
-                </div>
-                <div style="flex: 1 !important; background: #f7fafc !important; padding: 7px 10px !important; border-radius: 5px !important; border: 1px solid #e2e8f0 !important; text-align: left !important;">
                     <span style="color: #718096 !important; display: block !important; font-size: 8.5px !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 2px !important;">Show Time:</span>
                     <strong style="color: #1a202c !important; font-size: 10.5px !important; font-weight: 800 !important;">${proj.time || "-"}</strong>
                 </div>
@@ -1186,7 +1182,7 @@ async function exportProjectPDF() {
         }
     });
 
-    const invoiceNumber = proj.invoiceNumber || proj.invoiceNo || currentVer.invoiceNumber || currentVer.versionNumber;
+    const invoiceNumber = proj.invoiceNumber || proj.invoiceNo || currentVer.invoiceNumber || "";
     const fileParts = [proj.client || proj.name, invoiceNumber].filter(Boolean);
     const filename = `${fileParts.join("_").replace(/[^a-zA-Z0-9_\u0600-\u06FF-]/g, "_")}.pdf`;
 
