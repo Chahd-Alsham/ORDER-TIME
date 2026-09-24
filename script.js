@@ -1072,31 +1072,209 @@ function generatePrintPreviewContent() {
     `;
 }
 
-function exportProjectPDF() {
+function waitForPDFAssets(root) {
+    const fontReady = document.fonts && document.fonts.ready
+        ? document.fonts.ready
+        : Promise.resolve();
+    const imageReady = Array.from(root.querySelectorAll("img")).map(img => {
+        if (img.complete && img.naturalWidth > 0) {
+            return img.decode ? img.decode().catch(() => undefined) : Promise.resolve();
+        }
+
+        return new Promise(resolve => {
+            const finish = () => resolve();
+            img.addEventListener("load", finish, { once: true });
+            img.addEventListener("error", finish, { once: true });
+            setTimeout(finish, 4000);
+        });
+    });
+
+    return Promise.all([fontReady, ...imageReady]);
+}
+
+function createPDFDownload(blob, filename) {
+    const file = typeof File === "function"
+        ? new File([blob], filename, { type: "application/pdf" })
+        : null;
+    const canShare = file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] });
+
+    if (canShare) {
+        return navigator.share({ files: [file], title: filename }).catch(error => {
+            if (error.name !== "AbortError") throw error;
+        });
+    }
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return Promise.resolve();
+}
+
+async function exportProjectPDF() {
     const proj = appData.projects.find(p => p.id === currentProjectId);
     if (!proj) return;
     const currentVer = proj.versions.find(v => v.versionId === proj.currentVersionId) || proj.versions[0];
 
+    if (typeof html2canvas !== "function" || !window.jspdf || typeof window.jspdf.jsPDF !== "function") {
+        showToast("مكتبة إنشاء PDF غير متاحة", "error");
+        return;
+    }
+
     generatePrintPreviewContent();
-    const element = document.getElementById("a4-document");
+    const source = document.getElementById("a4-document");
+    if (!source) {
+        showToast("تعذر تجهيز محتوى PDF", "error");
+        return;
+    }
 
-    const cleanProjectName = proj.name.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, "_");
-    const filename = `${cleanProjectName}_${currentVer.versionName}_${new Date().toISOString().split("T")[0]}.pdf`;
+    const element = source.cloneNode(true);
+    const exportWidth = 794;
+    element.id = "a4-document-export";
+    element.style.cssText = [
+        "display: block !important",
+        "position: absolute !important",
+        "left: 0 !important",
+        "top: 0 !important",
+        "z-index: 2147483647 !important",
+        "visibility: visible !important",
+        "opacity: 1 !important",
+        `width: ${exportWidth}px !important`,
+        "height: auto !important",
+        "min-height: 1123px !important",
+        "overflow: visible !important",
+        "margin: 0 !important",
+        "padding: 45px 57px !important",
+        "box-sizing: border-box !important",
+        "background: #ffffff !important",
+        "transform: none !important"
+    ].join(";");
+    document.body.appendChild(element);
 
-    const opt = {
-        margin:      0,
-        filename:    filename,
-        image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 8, useCORS: true, letterRendering: true },
-        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().from(element).set(opt).save().then(() => {
-        showToast("PDF exported successfully");
-    }).catch(err => {
-        console.error("PDF Export Error:", err);
-        showToast("Error exporting PDF", "error");
+    const exportStyle = document.createElement("style");
+    exportStyle.textContent = `
+        #a4-document-export {
+            font-family: 'Cairo', 'Segoe UI', sans-serif !important;
+            line-height: 1.55 !important;
+        }
+        #a4-document-export h1 { font-size: 28px !important; line-height: 1.35 !important; }
+        #a4-document-export h3 { font-size: 15px !important; line-height: 1.45 !important; }
+        #a4-document-export table { font-size: 12px !important; }
+        #a4-document-export th,
+        #a4-document-export td { font-size: 12px !important; line-height: 1.55 !important; }
+        #a4-document-export strong { font-size: 14px !important; line-height: 1.55 !important; }
+        #a4-document-export > div:last-child { font-size: 11px !important; line-height: 1.55 !important; }
+    `;
+    element.prepend(exportStyle);
+    const arabicText = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+    element.querySelectorAll("*").forEach(node => {
+        const text = Array.from(node.childNodes)
+            .filter(child => child.nodeType === Node.TEXT_NODE)
+            .map(child => child.textContent)
+            .join(" ");
+        if (arabicText.test(text)) {
+            node.style.setProperty("font-family", "'Cairo', 'Segoe UI', sans-serif", "important");
+            node.style.setProperty("direction", "rtl", "important");
+            node.style.setProperty("text-align", "right", "important");
+            node.style.setProperty("unicode-bidi", "plaintext", "important");
+            node.style.setProperty("letter-spacing", "0", "important");
+        }
     });
+
+    const invoiceNumber = proj.invoiceNumber || proj.invoiceNo || currentVer.invoiceNumber || currentVer.versionNumber;
+    const fileParts = [proj.client || proj.name, invoiceNumber].filter(Boolean);
+    const filename = `${fileParts.join("_").replace(/[^a-zA-Z0-9_\u0600-\u06FF-]/g, "_")}.pdf`;
+
+    try {
+        await waitForPDFAssets(element);
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        const isAppleMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const renderScale = isAppleMobile ? 2.5 : 3;
+        const canvas = await html2canvas(element, {
+            scale: renderScale,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: "#ffffff",
+            logging: false,
+            width: exportWidth,
+            height: element.scrollHeight,
+            windowWidth: exportWidth,
+            windowHeight: element.scrollHeight,
+            scrollX: 0,
+            scrollY: 0
+        });
+        if (!canvas.width || !canvas.height) throw new Error("Rendered PDF canvas is empty");
+
+        const pixels = canvas.getContext("2d", { willReadFrequently: true })
+            .getImageData(0, 0, canvas.width, canvas.height).data;
+        let hasContent = false;
+        for (let index = 0; index < pixels.length; index += 1600) {
+            if (pixels[index] < 245 || pixels[index + 1] < 245 || pixels[index + 2] < 245) {
+                hasContent = true;
+                break;
+            }
+        }
+        if (!hasContent) throw new Error("Rendered PDF canvas is blank");
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+        const pageWidthMm = 210;
+        const pageHeightMm = 297;
+        const pagePixelHeight = Math.floor(canvas.width * pageHeightMm / pageWidthMm);
+        let lastContentRow = 0;
+        for (let row = canvas.height - 1; row >= 0 && !lastContentRow; row -= 3) {
+            for (let column = 0; column < canvas.width; column += 4) {
+                const pixelIndex = (row * canvas.width + column) * 4;
+                if (pixels[pixelIndex] < 245 || pixels[pixelIndex + 1] < 245 || pixels[pixelIndex + 2] < 245) {
+                    lastContentRow = row + 1;
+                    break;
+                }
+            }
+        }
+        const renderedHeight = Math.min(
+            canvas.height,
+            Math.max(pagePixelHeight, lastContentRow + renderScale * 24)
+        );
+        const pageCanvas = document.createElement("canvas");
+        const pageContext = pageCanvas.getContext("2d");
+
+        for (let sourceY = 0, pageIndex = 0; sourceY < renderedHeight; sourceY += pagePixelHeight, pageIndex++) {
+            const sliceHeight = Math.min(pagePixelHeight, renderedHeight - sourceY);
+            pageCanvas.width = canvas.width;
+            pageCanvas.height = sliceHeight;
+            pageContext.fillStyle = "#ffffff";
+            pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+            pageContext.drawImage(canvas, 0, sourceY, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+            if (pageIndex > 0) pdf.addPage();
+            pdf.addImage(
+                pageCanvas.toDataURL("image/png"),
+                "PNG",
+                0,
+                0,
+                pageWidthMm,
+                sliceHeight * pageWidthMm / canvas.width,
+                undefined,
+                "FAST"
+            );
+        }
+
+        const blob = pdf.output("blob");
+        if (!blob || blob.size === 0) throw new Error("PDF blob is empty");
+        await createPDFDownload(blob, filename);
+        showToast("تم إنشاء ملف PDF بنجاح");
+    } catch (error) {
+        console.error("PDF Export Error:", error);
+        showToast("تعذر إنشاء ملف PDF", "error");
+    } finally {
+        element.remove();
+    }
 }
 /* ==========================================
    Confirm Dialog Utility
