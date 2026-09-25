@@ -15,10 +15,21 @@
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
-    --sidebar-width: 260px;
+    /* لون ذهبي أنيق يُستخدم لاسم المشروع في الواجهة وفي ملف التصدير */
+    --gold: #e8b64c;
+    --gold-deep: #c9962a;
+    --sidebar-width: 280px;
     --header-height: 70px;
     --radius: 12px;
     --transition: all 0.25s ease;
+    /* حجم الخط الأساسي: كل المقاسات بالـ rem في التطبيق تعتمد عليه.
+       غيّر هذا الرقم فقط لتكبير أو تصغير كل خطوط الواجهة دفعة واحدة.
+       ملاحظة: لا يؤثر على تقارير PDF لأنها مثبتة بالـ px. */
+    --font-size-base: 18px;
+}
+
+html {
+    font-size: var(--font-size-base);
 }
 
 * {
@@ -361,6 +372,18 @@ body {
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--text-primary);
+}
+
+/* اسم المشروع (وليس اسم المعدة) يظهر بلون ذهبي */
+.project-card-header h3.project-name-gold {
+    color: var(--gold);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* اسم المشروع في صفحة التفاصيل */
+#det-proj-name {
+    color: var(--gold);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .project-card-body {
@@ -853,6 +876,8 @@ body {
     display: flex;
     flex-direction: column;
     font-family: 'Cairo', sans-serif;
+    /* تثبيت خط التقرير: يمنع تأثره بتكبير خط الواجهة (html font-size) */
+    font-size: 16px;
     direction: rtl;
     box-sizing: border-box;
 }
@@ -865,14 +890,14 @@ body {
 }
 
 .a4-company-info h1 {
-    font-size: 1.4rem;
+    font-size: 22.4px;
     font-weight: 700;
     color: #1e3a8a;
     margin-bottom: 4px;
 }
 
 .a4-company-info p {
-    font-size: 0.8rem;
+    font-size: 12.8px;
     color: #4b5563;
 }
 
@@ -907,7 +932,7 @@ body {
 }
 
 .a4-doc-title h2 {
-    font-size: 1.1rem;
+    font-size: 17.6px;
     color: #1f2937;
     font-weight: 700;
 }
@@ -916,7 +941,7 @@ body {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 8px 16px;
-    font-size: 0.85rem;
+    font-size: 13.6px;
     background-color: #fafafa;
     border: 1px solid #e5e7eb;
     padding: 12px;
@@ -933,7 +958,7 @@ body {
     border: 1px solid #fde68a;
     padding: 10px;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 13.6px;
     margin-bottom: 16px;
 }
 .a4-notes-box p {
@@ -948,7 +973,7 @@ body {
 .a4-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8rem;
+    font-size: 12.8px;
     text-align: right;
 }
 
@@ -974,7 +999,7 @@ body {
     border-top: 1px solid #e5e7eb;
     padding-top: 12px;
     margin-top: 20px;
-    font-size: 0.75rem;
+    font-size: 12px;
     color: #6b7280;
 }
 

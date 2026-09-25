@@ -596,7 +596,7 @@ function renderProjects(searchTerm = "") {
         card.className = "project-card";
         card.innerHTML = `
             <div class="project-card-header">
-                <h3>${proj.name}</h3>
+                <h3 class="project-name-gold">${proj.name}</h3>
                 <span class="badge badge-accent">${currentVer ? currentVer.versionName : 'v1'}</span>
             </div>
             <div class="project-card-body">
@@ -925,6 +925,74 @@ function renderLogoPreview() {
 /* ==========================================
     Print Preview & PDF Export (Professional Cinematic Lighting Report)
     ========================================== */
+
+/* معامل تكبير خط التقرير وملف التصدير.
+   أحجام الخط في التقرير مكتوبة بالـ px داخل generatePrintPreviewContent،
+   لذلك يُطبَّق هذا المعامل عليها تلقائياً بعد بناء التقرير (يشمل المعاينة وملف الـ PDF).
+   غيّر هذا الرقم فقط لتكبير الخط أو تصغيره: 1 = الحجم الحالي، 1.2 = أكبر بنسبة 20%. */
+const REPORT_FONT_SCALE = 1.3;
+
+function applyReportFontScale(root) {
+    if (!root || REPORT_FONT_SCALE === 1) return;
+
+    const nodes = [root, ...Array.from(root.querySelectorAll("*"))];
+    // تُقرأ كل الأحجام قبل أي تعديل، حتى لا تتضاعف القيم مع الوراثة (inheritance)
+    const originalSizes = nodes.map(node => parseFloat(getComputedStyle(node).fontSize));
+
+    nodes.forEach((node, index) => {
+        const size = originalSizes[index];
+        if (!size || Number.isNaN(size)) return;
+        node.style.setProperty("font-size", `${Math.round(size * REPORT_FONT_SCALE * 100) / 100}px`, "important");
+    });
+}
+
+/* إعدادات مشتركة بين معاينة الطباعة وملف التصدير.
+   الهدف: نفس العرض والهوامش ونوع الخط في الاثنين، حتى لا تتحرك أي معلومة عند التصدير.
+   القيم بالبكسل وmm مجرد مرجع (210mm = 794px, 297mm = 1123px عند 96dpi). */
+const REPORT_BOX = {
+    widthPx: 794,      // 210mm
+    heightPx: 1123,    // 297mm
+    paddingV: "12mm",  // أعلى/أسفل
+    paddingH: "15mm"   // يمين/يسار
+};
+
+const REPORT_FONT_LATIN = "'Montserrat', 'Inter', 'Segoe UI', sans-serif";
+const REPORT_FONT_ARABIC = "'Cairo', 'Segoe UI', sans-serif";
+
+// يوحّد عرض الصندوق وهوامشه بين المعاينة والتصدير (قيم مطابقة بالبكسل)
+const REPORT_PADDING_PX = (() => {
+    const mmToPx = 96 / 25.4;
+    const v = Math.round(12 * mmToPx * 100) / 100;  // 45.35px
+    const h = Math.round(15 * mmToPx * 100) / 100;  // 56.69px
+    return `${v}px ${h}px`;
+})();
+
+// Elements التي ضبطها المولّد يدوياً عبر data-keep-alignment لا تُلمس هنا،
+// وإلا لعادت إلى RTL وظهرت يميناً بدل أقصى اليسار.
+const ARABIC_TEXT_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+
+// يطبّق خط Cairo واتجاه RTL على كل عنصر يحوي نصاً عربياً.
+// يُستدعى على المعاينة وعلى نسخة التصدير معاً، حتى تتطابق المواضع تماماً.
+function normalizeArabicText(root) {
+    if (!root) return;
+    root.querySelectorAll("*").forEach(node => {
+        // تخطّي العناصر التي طلبت الالتفاف يدوياً (مثل حقل Venue بالتقرير)
+        if (node.dataset && node.dataset.keepAlignment !== undefined) return;
+        const text = Array.from(node.childNodes)
+            .filter(child => child.nodeType === Node.TEXT_NODE)
+            .map(child => child.textContent)
+            .join(" ");
+        if (ARABIC_TEXT_RE.test(text)) {
+            node.style.setProperty("font-family", REPORT_FONT_ARABIC, "important");
+            node.style.setProperty("direction", "rtl", "important");
+            node.style.setProperty("text-align", "right", "important");
+            node.style.setProperty("unicode-bidi", "plaintext", "important");
+            node.style.setProperty("letter-spacing", "0", "important");
+        }
+    });
+}
+
+
 function generatePrintPreviewContent() {
     const proj = appData.projects.find(p => p.id === currentProjectId);
     if (!proj) return;
@@ -933,7 +1001,8 @@ function generatePrintPreviewContent() {
     const docEl = document.getElementById("a4-document");
     if (!docEl) return;
 
-    // إعداد حاوية الـ A4 بخلفية بيضاء صلبة وخطوط إنجليزية عريضة وأنيقة
+    // مهم: هذه الإعدادات مطابقة تماماً لما يُستخدم في التصدير (exportProjectPDF)،
+    // حتى تظهر المعلومات بنفس المواضع في المعاينة وفي ملف الـ PDF.
     docEl.style.cssText = `
         all: initial !important;
         display: block !important;
@@ -941,13 +1010,13 @@ function generatePrintPreviewContent() {
         font-family: 'Montserrat', 'Inter', 'Segoe UI', sans-serif !important;
         direction: ltr !important;
         text-align: left !important;
-        width: 210mm !important;
-        min-height: 297mm !important;
+        width: ${REPORT_BOX.widthPx}px !important;
+        min-height: ${REPORT_BOX.heightPx}px !important;
         background-color: #ffffff !important;
         color: #1a202c !important;
         position: relative !important;
-        padding: 12mm 15mm !important;
-        margin: 0 auto !important;
+        padding: ${REPORT_PADDING_PX} !important;
+        margin: 0 auto !important
     `;
 
     // تجهيز اللوجو بحجم أكبر ومظهر بارز
@@ -987,7 +1056,7 @@ function generatePrintPreviewContent() {
             <div style="border-bottom: 2.5px solid #cbd5e0 !important; padding-bottom: 15px !important; margin-bottom: 18px !important; display: flex !important; justify-content: space-between !important; align-items: center !important;">
                 <div>
                     <div style="font-size: 14px !important; letter-spacing: 4px !important; color: #3182ce !important; font-weight: 800 !important; text-transform: uppercase !important; margin-bottom: 6px !important;">PROFESSIONAL LIGHTING DESIGN REPORT</div>
-                    <h1 style="font-size: 22px !important; font-weight: 900 !important; color: #1a202c !important; margin: 0 !important; line-height: 1.2 !important; letter-spacing: -0.5px !important;">${proj.name}</h1>
+                    <h1 style="font-size: 22px !important; font-weight: 900 !important; color: #b8860b !important; margin: 0 !important; line-height: 1.2 !important; letter-spacing: -0.5px !important;">${proj.name}</h1>
                 </div>
                 <div style="text-align: right !important;">
                     ${logoHtml}
@@ -1003,7 +1072,8 @@ function generatePrintPreviewContent() {
                 </div>
                 <div style="flex: 1 !important; background: #f7fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; padding: 9px 12px !important; border-left: 4px solid #805ad5 !important; text-align: left !important;">
                     <div style="font-size: 8.5px !important; color: #718096 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; letter-spacing: 0.5px !important;">Venue</div>
-                    <div style="font-size: 12.5px !important; font-weight: 800 !important; color: #1a202c !important;">${proj.venue || "-"}</div>
+                    <!-- قيمة Venue: خضراء + أقصى يسار الكارت. data-keep-alignment تمنع normalizeArabicText من قلبها لليمين. لتغيير اللون: عدّل قيمة color. -->
+                    <div data-keep-alignment="1" style="font-size: 12.5px !important; font-weight: 800 !important; color: #16a34a !important; text-align: left !important; direction: ltr !important;">${proj.venue || "-"}</div>
                 </div>
                 <div style="flex: 1 !important; background: #f7fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 6px !important; padding: 9px 12px !important; border-left: 4px solid #3182ce !important; text-align: left !important;">
                     <div style="font-size: 8.5px !important; color: #718096 !important; font-weight: 700 !important; text-transform: uppercase !important; margin-bottom: 3px !important; letter-spacing: 0.5px !important;">Date</div>
@@ -1045,11 +1115,11 @@ function generatePrintPreviewContent() {
                 <table dir="ltr" style="width: 100% !important; border-collapse: collapse !important; font-size: 10.5px !important; direction: ltr !important;">
                     <thead>
                         <tr style="background: #edf2f7 !important; color: #2b6cb0 !important; border-bottom: 2.5px solid #cbd5e0 !important;">
-                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Fixture</th>
-                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Brand</th>
-                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Model</th>
-                            <th style="padding: 9px 10px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Type</th>
-                            <th style="padding: 9px 10px !important; text-align: center !important; font-weight: 800 !important; letter-spacing: 0.5px !important;">Required Qty</th>
+                            <th style="padding: 9px 10px !important; font-size: 12px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Fixture</th>
+                            <th style="padding: 9px 10px !important; font-size: 12px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Brand</th>
+                            <th style="padding: 9px 10px !important; font-size: 12px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Model</th>
+                            <th style="padding: 9px 10px !important; font-size: 12px !important; font-weight: 800 !important; text-align: left !important; letter-spacing: 0.5px !important;">Type</th>
+                            <th style="padding: 9px 10px !important; font-size: 12px !important; text-align: center !important; font-weight: 800 !important; letter-spacing: 0.5px !important;">Required Qty</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1066,6 +1136,13 @@ function generatePrintPreviewContent() {
             <div>Lighting Design Report &bull; Generated: ${new Date().toISOString().split("T")[0]}</div>
         </div>
     `;
+
+    // تنسيق النصوص العربية (خط Cairo واتجاه RTL) — يُطبَّق في المعاينة وفي التصدير معاً
+    // حتى لا يتغيّر موضع أي معلومة بين الشاشة وملف الـ PDF.
+    normalizeArabicText(docEl);
+
+    // تكبير خطوط التقرير (يشمل معاينة الطباعة وملف الـ PDF المُصدَّر)
+    applyReportFontScale(docEl);
 }
 
 function waitForPDFAssets(root) {
@@ -1130,8 +1207,9 @@ async function exportProjectPDF() {
     }
 
     const element = source.cloneNode(true);
-    const exportWidth = 794;
+    const exportWidth = REPORT_BOX.widthPx;
     element.id = "a4-document-export";
+    // نفس قياسات المعاينة بالضبط (عرض + هوامش + خط) حتى لا تتحرك أي معلومة
     element.style.cssText = [
         "display: block !important",
         "position: absolute !important",
@@ -1142,45 +1220,24 @@ async function exportProjectPDF() {
         "opacity: 1 !important",
         `width: ${exportWidth}px !important`,
         "height: auto !important",
-        "min-height: 1123px !important",
+        `min-height: ${REPORT_BOX.heightPx}px !important`,
         "overflow: visible !important",
         "margin: 0 !important",
-        "padding: 45px 57px !important",
+        `padding: ${REPORT_PADDING_PX} !important`,
         "box-sizing: border-box !important",
         "background: #ffffff !important",
+        "color: #1a202c !important",
+        `font-family: ${REPORT_FONT_LATIN} !important`,
+        "direction: ltr !important",
+        "text-align: left !important",
+        "line-height: normal !important",
         "transform: none !important"
     ].join(";");
     document.body.appendChild(element);
 
-    const exportStyle = document.createElement("style");
-    exportStyle.textContent = `
-        #a4-document-export {
-            font-family: 'Cairo', 'Segoe UI', sans-serif !important;
-            line-height: 1.55 !important;
-        }
-        #a4-document-export h1 { font-size: 28px !important; line-height: 1.35 !important; }
-        #a4-document-export h3 { font-size: 15px !important; line-height: 1.45 !important; }
-        #a4-document-export table { font-size: 12px !important; }
-        #a4-document-export th,
-        #a4-document-export td { font-size: 12px !important; line-height: 1.55 !important; }
-        #a4-document-export strong { font-size: 14px !important; line-height: 1.55 !important; }
-        #a4-document-export > div:last-child { font-size: 11px !important; line-height: 1.55 !important; }
-    `;
-    element.prepend(exportStyle);
-    const arabicText = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
-    element.querySelectorAll("*").forEach(node => {
-        const text = Array.from(node.childNodes)
-            .filter(child => child.nodeType === Node.TEXT_NODE)
-            .map(child => child.textContent)
-            .join(" ");
-        if (arabicText.test(text)) {
-            node.style.setProperty("font-family", "'Cairo', 'Segoe UI', sans-serif", "important");
-            node.style.setProperty("direction", "rtl", "important");
-            node.style.setProperty("text-align", "right", "important");
-            node.style.setProperty("unicode-bidi", "plaintext", "important");
-            node.style.setProperty("letter-spacing", "0", "important");
-        }
-    });
+    // لا تُضاف أي قاعدة font-size هنا: الأحجام مضبوطة مسبقاً داخل التقرير،
+    // وإعادة فرضها كانت تُزيح المواضع بين المعاينة والملف المصدَّر.
+    normalizeArabicText(element);
 
     const invoiceNumber = proj.invoiceNumber || proj.invoiceNo || currentVer.invoiceNumber || "";
     const fileParts = [proj.client || proj.name, invoiceNumber].filter(Boolean);
